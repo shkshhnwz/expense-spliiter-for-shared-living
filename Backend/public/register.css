@@ -1,0 +1,33 @@
+ body {
+   min-height: 100vh;
+ }
+
+ .center-card {
+   position: relative;
+   width: min(92vw, 520px);
+   border-radius: 16px;
+   background: rgba(255, 255, 255, 0.10);
+   border: 1px solid rgba(255, 255, 255, 0.18);
+   backdrop-filter: blur(12px) saturate(140%);
+   -webkit-backdrop-filter: blur(12px) saturate(140%);
+   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+   color: #fff;
+ }
+
+ .center-card::before {
+   content: "";
+   position: absolute;
+   inset: -2px;
+   z-index: -1;
+   border-radius: inherit;
+   filter: blur(24px);
+   opacity: 0.9;
+ }
+
+ .center-card .card-body label {
+   color: #e5e7eb;
+ }
+.form-control:focus {
+  border-color: #0077b6;
+  box-shadow: 0 0 0 0.25rem rgba(0, 119, 182, 0.25);
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= pageTitle %></title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="jumbotron">
+            <h1 class="display-4">👋 Thanks for using our service!</h1>
+            <p class="lead">You have been successfully logged out.</p>
+            <hr class="my-4">
+            <p>Redirecting to the Login Page in <span id="countdown" class="countdown">3</span> seconds...</p>
+            <p class="mt-4">If you are not automatically redirected, please <a href="/login">click here</a>.</p>
+        </div>
+    </div>
+
+    <script>
+        const REDIRECT_DELAY = 3000; 
+        const LOGIN_URL = '/login'; 
+        let countdownElement = document.getElementById('countdown');
+        let timeLeft = REDIRECT_DELAY / 1000;
+
+
+        function updateCountdown() {
+            countdownElement.textContent = timeLeft;
+            timeLeft--;
+        }
+
+        updateCountdown(); 
+        
+        const intervalId = setInterval(updateCountdown, 1000);
+
+        setTimeout(() => {
+            clearInterval(intervalId); 
+            window.location.href = LOGIN_URL; 
+        }, REDIRECT_DELAY);
+    </script>
+</body>
+</html>

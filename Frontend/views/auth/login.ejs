@@ -1,0 +1,34 @@
+<%- include('../partials/mainhead') %>
+  <%- include('../partials/navbar') %>
+    <div class="min-vh-100 d-flex flex-column align-items-center justify-content-center p-3">
+
+      <div class="center-card card">
+        <div class="card-body p-4">
+          <h1 class="h4 mb-4 text-black">Sign In</h1>
+          <div id="authMessage" class="mb-2"></div> 
+          <form action="/login" id="loginForm">
+            <div class="mb-3">
+              <label for="emailInput" class="form-label text-black">Email address</label>
+              <input type="email" class="form-control" id="emailInput" name="emailuser"
+                placeholder="Enter your registered email" required>
+            </div>
+            <div class="mb-4">
+              <label for="inputPassword" class="form-label text-black">Password</label>
+              <input type="password" class="form-control" id="inputPassword" name="passworduser"
+                placeholder="Enter your password" required>
+            </div>
+            <div class="forgotlink d-flex justify-content-end">
+              <a href="/forgotpassword" class="text-decoration-none text-dark mb-2 mt-0">Forgot Password</a>
+            </div>
+            <div class="d-grid">
+              <button class="btn btn-primary" type="submit"
+                style="background-color: #8754ff; border-color:#8754ff;">Sign In</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <%- include('../partials/otherloginopt') %>
+    </div>
+
+
+    <%- include('../partials/footer') %>
