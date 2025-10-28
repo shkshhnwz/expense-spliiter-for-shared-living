@@ -1,1 +1,0 @@
-mongodb+srv://shahnawazshaikh:shah1201@expense-splitter.kukbpia.mongodb.net/
