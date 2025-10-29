@@ -4,14 +4,16 @@ const User = require('../model/User');
 exports.getlogin = (req, res, next) => {
     res.render("auth/login", {
         pageTitle: "Login Page",
-        stylesheet: "/login.css"
+        stylesheet: "/login.css",
+        user : req.user
     })
 }
 
 exports.getregister = (req, res, next) => {
     res.render("auth/register", {
         pageTitle: "SignUp Page",
-        stylesheet: "/register.css"
+        stylesheet: "/register.css",
+        user : req.users
     })
 }
 
