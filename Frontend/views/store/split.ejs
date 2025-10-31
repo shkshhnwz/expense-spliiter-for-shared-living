@@ -1,0 +1,203 @@
+<%- include('../partials/mainhead') %>
+    <%- include('../partials/navbar') %>
+
+        <div class="container py-4 py-sm-5 mobile-center">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-9 col-lg-7">
+                    <h2 class="inter-header text-center mb-4">Provide your split details</h2>
+
+                    <form action="/dashboard/splits" class="needs-validation" method="post" id="splitForm">
+
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header text-white bg-purple text-center">Name of the split</div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label for="splitName" class="form-label visually-hidden">Split Name</label>
+                                        <input class="form-control" type="text" name="splitName" id="splitName"
+                                            placeholder="(eg. food, travel, etc)" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header text-white bg-purple text-center">Amount and Date</div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-6 mb-3 mb-md-0">
+                                        <label for="payableAmount" class="form-label">Total amount</label>
+                                        <input class="form-control" type="number" step="0.01" name="payableAmount"
+                                            id="payableAmount" placeholder="e.g. 50.00" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="dateofExpense" class="form-label">Date of Bill</label>
+                                        <input class="form-control" type="date" name="dateofExpense" id="dateofExpense"
+                                            required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header text-white bg-purple text-center">How to split?</div>
+                            <div class="card-body">
+                                <label for="splitMethod" class="form-label">Select Split Method</label>
+                                <select class="form-select" name="splitMethod" id="splitMethod" required>
+                                    <option value="" disabled selected>Choose a method</option>
+                                    <option value="equal">Split Equally</option>
+                                    <option value="amount">By Exact Amounts</option>
+                                    <option value="percentage">By Percentage</option>
+                                    <option value="shares">By Shares</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header text-white bg-purple text-center">Splitter Details</div>
+                            <div class="card-body">
+                                <p class="text-muted small">The payer (You) must be included in the split.</p>
+
+                                <div class="mb-3">
+                                    <label for="numSplitters" class="form-label">Total Number of People Splitting
+                                        (Including You)</label>
+                                    <input class="form-control" type="number" id="numSplitters" min="1" value="1"
+                                        required>
+                                </div>
+
+                                <div id="splitter-fields-container">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Submit Expense Split</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <%- include('../partials/footer') %>
+
+            <script>
+                $(document).ready(function () {
+                    const $container = $('#splitter-fields-container');
+                    const $numSplitters = $('#numSplitters');
+                    const $payableAmount = $('#payableAmount');
+                    const $splitMethod = $('#splitMethod');
+
+                    // --- Core Functions ---
+
+                    // 1. Generates the HTML for a single splitter row
+           const generateSplitterRow = (index) => {
+    const isPayer = index === 0;
+    const title = isPayer ? `Splitter ${index + 1} (You - The Payer)` : `Splitter ${index + 1}`;
+    const namePlaceholder = isPayer ? "Your Name (Payer)" : "Splitter's Name";
+    const readonlyAttr = isPayer ? 'readonly' : '';
+    const contactPlaceholder = "Splitter's Contact";
+    const nameValue = isPayer ? "You (Payer)" : "";
+
+    return `
+        <div class="row g-2 mb-3 splitter-row" data-index="${index}">
+            <div class="col-12">
+                <p class="mb-1 fw-bold">${title}</p>
+            </div>
+            <div class="col-md-5">
+                <input type="text" class="form-control" name="splitterNames[${index}]" placeholder="${namePlaceholder}" value="${nameValue}" ${readonlyAttr} required>
+            </div>
+            
+            ${isPayer 
+                ? `<div class="col-md-4"></div>` // Empty column for layout consistency
+                : `<div class="col-md-4">
+                    <input type="text" class="form-control" name="splitterContact[${index}]" placeholder="${contactPlaceholder}" required> 
+                </div>` // Note: Added 'required' here to match schema for other splitters
+            }
+            
+            <div class="col-md-3">
+                <input type="number" step="0.01" class="form-control split-value-input" name="splitValues[${index}]" placeholder="Value" required>
+            </div>
+        </div>
+    `;
+};
+
+                    // 2. Renders the correct number of splitter fields
+                    const renderSplitterFields = () => {
+                        const currentCount = $container.children().length;
+                        const targetCount = parseInt($numSplitters.val()) || 0;
+
+                        if (targetCount < 1) {
+                            // Minimum splitters must be 1 (the payer/admin)
+                            $numSplitters.val(1);
+                            return;
+                        }
+
+                        $container.empty(); // Clear existing rows
+
+                        for (let i = 0; i < targetCount; i++) {
+                            $container.append(generateSplitterRow(i));
+                        }
+
+                        updateSplitValues();
+                        updateInputBehavior();
+                    };
+
+                    // 3. Calculates and updates the split value inputs
+                    const updateSplitValues = () => {
+                        const amount = parseFloat($payableAmount.val()) || 0;
+                        const method = $splitMethod.val();
+                        const count = $container.children().length;
+                        const $valueInputs = $container.find('.split-value-input');
+
+                        // Only attempt automatic calculation if 'equal' is selected
+                        if (method === 'equal' && amount > 0 && count > 0) {
+                            const equalShare = amount / count;
+                            $valueInputs.each(function () {
+                                // Pre-fill the calculated amount (rounded to 2 decimal places)
+                                $(this).val(equalShare.toFixed(2));
+                            });
+                        } else if (method !== 'equal') {
+                            // Clear values for manual entry methods (Amount, Percentage, Shares)
+                            $valueInputs.val('');
+                        }
+                    };
+
+                    // 4. Sets placeholder and readonly state based on split method
+                    const updateInputBehavior = () => {
+                        const method = $splitMethod.val();
+                        let placeholderText = '';
+
+                        if (method === 'equal') {
+                            placeholderText = 'Calculated Equally';
+                        } else if (method === 'amount') {
+                            placeholderText = 'Exact Amount Owed';
+                        } else if (method === 'percentage') {
+                            placeholderText = 'Percentage (%)';
+                        } else if (method === 'shares') {
+                            placeholderText = 'Number of Shares';
+                        }
+
+                        $container.find('.split-value-input').each(function () {
+                            $(this).attr('placeholder', placeholderText);
+
+                            // Value input is readonly ONLY if method is 'equal'
+                            $(this).prop('readonly', method === 'equal');
+                        });
+                    };
+
+                    // --- Event Listeners ---
+
+                    // Trigger rendering when number of splitters changes
+                    $numSplitters.on('change keyup', renderSplitterFields);
+
+                    // Trigger value recalculation when amount or method changes
+                    $payableAmount.on('change keyup', updateSplitValues);
+                    $splitMethod.on('change', function () {
+                        updateInputBehavior();
+                        updateSplitValues(); // Update values if method is switched to 'equal'
+                    });
+
+                    // --- Initialization ---
+                    renderSplitterFields(); // Initial render on page load
+                });
+            </script>

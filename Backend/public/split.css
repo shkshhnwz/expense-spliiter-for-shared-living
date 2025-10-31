@@ -1,0 +1,61 @@
+body {
+     min-height: 100vh;
+     background-color: #F8F9FA;
+     margin: 0;
+     font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* small helper to center on mobile only */
+.mobile-center {
+  /* default (desktop/tablet) keep normal flow; mobile will get center layout below */
+}
+
+/* when viewport is narrow, center container vertically and horizontally */
+@media (max-width: 576px) {
+  .mobile-center {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+}
+
+/* keep custom visual styles but DO NOT override Bootstrap .card/.card-header/.card-body */
+/* use a small utility class (bg-purple) applied to headers in the EJS above */
+.bg-purple {
+  background-color: #8754ff !important;
+}
+
+/* tweak the reusable heading above the form */
+.inter-header {
+     font-weight: 600;
+     margin-top: 0.25rem;
+     margin-bottom: 0.75rem;
+     text-align: center;
+     font-size: 1.25rem;
+}
+
+/* subtle customizations for form-check visuals without breaking Bootstrap */
+.form-check-input[type="radio"] {
+     width: 1.15em;
+     height: 1.15em;
+     border-width: 1.6px;
+}
+
+/* larger, friendlier inputs */
+.form-control.form-control-lg {
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+}
+
+/* button style kept by Bootstrap; optional tweak */
+.btn-primary {
+    background: #6b38ff;
+    border: none;
+}
+
+/* subtle card shadow override for a modern look */
+.card.shadow-sm {
+    border-radius: 12px;
+}

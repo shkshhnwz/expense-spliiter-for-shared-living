@@ -110,39 +110,59 @@ exports.getsplit = (req, res, next) => {
 }
 
 exports.postsplit = async (req, res, next) => {
-    const userid = req.user || req.user._id;
+    // Get the authenticated user ID
+    const userid = req.user && (req.user._id || req.user.uid);
     if (!userid) {
-        res.redirect('/login');
+        return res.redirect('/login');
     }
 
     const {
         splitName,
         payableAmount,
         dateofExpense,
-        payerId,
         splitterNames,
-        splitterContact,
+        splitterContact, // This array/string contains only NON-PAYER contacts
         splitValues,
         splitMethod
     } = req.body;
 
-    const amount = parseInt(payableAmount);
+    const amount = parseFloat(payableAmount);
+    
+    // ----------------------------------------------------------------------
+    // 🛑 FIX: Inject the Payer's Contact Information (Securely)
+    // ----------------------------------------------------------------------
+    // Get Payer's contact from the secure user object
+    const payerContact = req.user.email || req.user.contact || 'N/A'; 
 
-    if (!splitName || !amount || !dateofExpense || !payerId || !splitterNames || splitterContact || !splitValues || !splitMethod) {
-        res.redirect('/split');
+    // Ensure submittedContacts is an array and filter out any accidental null/empty string entries
+    let submittedContacts = Array.isArray(splitterContact) 
+        ? splitterContact.filter(c => c !== null)
+        : (splitterContact ? [splitterContact] : []);
+
+    // Add the payer's secure contact to the beginning (index 0).
+    submittedContacts.unshift(payerContact);
+    const finalSplitterContacts = submittedContacts; 
+    // ----------------------------------------------------------------------
+
+
+    // 1. Validation Check (Uses corrected array and correct path for redirect)
+    // Note: The !splitterContact check is now safely handled by checking finalSplitterContacts length
+    if (!splitName || isNaN(amount) || !dateofExpense || !splitterNames || !splitValues || !splitMethod) {
+        return res.redirect('/dashboard/splits?error=Missing required fields');
     }
 
-    if (amount <= 0 || isNaN(amount)) {
-        return res.redirect('/split?amount should be greater than zero');
+    if (amount <= 0) {
+        return res.redirect('/dashboard/splits?error=Amount should be greater than zero');
     }
 
-    if (splitterNames.length !== splitValues.length || splitterNames.length !== splitterContact.length) {
-        res.redirect('/split?error=Splitter data mismatch');
+    // 2. Length Mismatch Check (Uses the fixed finalSplitterContacts array)
+    if (splitterNames.length !== splitValues.length || splitterNames.length !== finalSplitterContacts.length) {
+        return res.redirect('/dashboard/splits?error=Splitter data mismatch');
     }
 
     let totalValSum = 0;
     const finalsplitters = [];
-
+    
     splitValues.forEach(val => totalValSum += parseFloat(val))
 
     for (let i = 0; i < splitterNames.length; i++) {
@@ -161,26 +181,28 @@ exports.postsplit = async (req, res, next) => {
                 break;
             case 'shares':
                 if (totalValSum === 0) {
-                    throw new Error("Shares cannot be zero");
+                    return res.redirect('/dashboard/splits?error=Shares total cannot be zero');
                 }
                 amountOwned = amount * (value / totalValSum);
                 break;
             default:
-                return res.redirect('/split?error= Invalid split method');
+                return res.redirect('/dashboard/splits?error=Invalid split method');
         }
-        finalSplitters.push({
+        
+        finalsplitters.push({
             name: splitterNames[i],
-            contact: splitterContacts[i],
-            amountOwed: amountOwed,
+            contact: finalSplitterContacts[i], // Uses the securely injected contact
+            amountOwned: amountOwned,
             splitValue: value,
             hasSettled: false
         });
 
     }
-    const calculatedTotalOwed = finalSplitters.reduce((sum, splitter) => sum + splitter.amountOwed, 0);
+    
+    const calculatedTotalOwed = finalsplitters.reduce((sum, splitter) => sum + splitter.amountOwned, 0);
 
     if (Math.abs(calculatedTotalOwed - amount) > 0.01) {
-        return res.redirect('/add-split?error=Split amounts do not total the expense amount.');
+        return res.redirect('/dashboard/splits?error=Split amounts do not total the expense amount.');
     }
 
     try {
@@ -188,14 +210,13 @@ exports.postsplit = async (req, res, next) => {
             description: splitName,
             amount: amount,
             date: dateofExpense,
-            paidBy: payerId, 
+            paidBy: userid, 
             splitMethod: splitMethod,
-            splitters: finalSplitters,
-            user : userid
+            splitters: finalsplitters,
+            user : userid 
         });
 
         await newExpense.save();
-        
         
         return res.redirect('/dashboard'); 
 
@@ -203,5 +224,4 @@ exports.postsplit = async (req, res, next) => {
         console.error('Error saving new expense:', err);
         next(err); 
     }
-
 } 

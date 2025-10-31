@@ -52,8 +52,8 @@ const ExpenseSchema = new Schema ({
     },
     splitters : [SplitterDetails],
 
-    createdBy :{
-        type : Schema.Types.ObjectId,
+    user :{
+        type : String,
         ref : 'User',
         required : true
     }
