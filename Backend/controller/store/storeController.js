@@ -127,21 +127,21 @@ exports.postsplit = async (req, res, next) => {
     } = req.body;
 
     const amount = parseFloat(payableAmount);
-    
+
     // ----------------------------------------------------------------------
     // 🛑 FIX: Inject the Payer's Contact Information (Securely)
     // ----------------------------------------------------------------------
     // Get Payer's contact from the secure user object
-    const payerContact = req.user.email || req.user.contact || 'N/A'; 
+    const payerContact = req.user.email || req.user.contact || 'N/A';
 
     // Ensure submittedContacts is an array and filter out any accidental null/empty string entries
-    let submittedContacts = Array.isArray(splitterContact) 
+    let submittedContacts = Array.isArray(splitterContact)
         ? splitterContact.filter(c => c !== null)
         : (splitterContact ? [splitterContact] : []);
 
     // Add the payer's secure contact to the beginning (index 0).
     submittedContacts.unshift(payerContact);
-    const finalSplitterContacts = submittedContacts; 
+    const finalSplitterContacts = submittedContacts;
     // ----------------------------------------------------------------------
 
 
@@ -162,7 +162,7 @@ exports.postsplit = async (req, res, next) => {
 
     let totalValSum = 0;
     const finalsplitters = [];
-    
+
     splitValues.forEach(val => totalValSum += parseFloat(val))
 
     for (let i = 0; i < splitterNames.length; i++) {
@@ -188,7 +188,7 @@ exports.postsplit = async (req, res, next) => {
             default:
                 return res.redirect('/dashboard/splits?error=Invalid split method');
         }
-        
+
         finalsplitters.push({
             name: splitterNames[i],
             contact: finalSplitterContacts[i], // Uses the securely injected contact
@@ -198,7 +198,7 @@ exports.postsplit = async (req, res, next) => {
         });
 
     }
-    
+
     const calculatedTotalOwed = finalsplitters.reduce((sum, splitter) => sum + splitter.amountOwned, 0);
 
     if (Math.abs(calculatedTotalOwed - amount) > 0.01) {
@@ -210,32 +210,98 @@ exports.postsplit = async (req, res, next) => {
             description: splitName,
             amount: amount,
             date: dateofExpense,
-            paidBy: userid, 
+            paidBy: userid,
             splitMethod: splitMethod,
             splitters: finalsplitters,
-            user : userid 
+            user: userid
         });
 
         await newExpense.save();
-        
-        return res.redirect('/dashboard'); 
+
+        return res.redirect('/dashboard');
 
     } catch (err) {
         console.error('Error saving new expense:', err);
-        next(err); 
+        next(err);
     }
-} 
+}
 
-exports.downloadpdf = async(req, res, next) =>{
-    const {expenseId} = req.params;
-    const userid = req.user && (req.user._id || req.user.uid);
-    if (!userid) {
-        return res.redirect('/login');
-    }
-    
-    const expense = await Expense.findOne({_id : expenseId, user: userid})
+exports.downloadpdf = async (req, res, next) => {
+    try {
 
-    if(!expense){
-        return res.status(404).send('Expense not found or unauthorized.').res.redirect('./split');
+
+        const { expenseId } = req.params;
+        const userid = req.user && (req.user._id || req.user.uid);
+        if (!userid) {
+            return res.redirect('/login');
+        }
+
+        const expense = await Expense.findOne({ _id: expenseId, user: userid })
+
+        if (!expense) {
+            return res.status(404).send('Expense not found or unauthorized.').res.redirect('./split');
+        }
+
+        const filename = `Expense_${expense._id}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        const doc = new PDFDocument();
+        doc.pipe(res);
+        doc.fontSize(25)
+            .text(`Expense Split : ${expense.description}`, { align: 'center' });
+        doc.moveDown();
+
+        doc.fontSize(16)
+            .text(`Date : ${new Date(expense.date).toLocaleDateString()}`)
+        doc.text(`Total Amount : ${expense.amount.toFixed(2)}`);
+        doc.text(`Paid By : ${expense.paidBy}`);
+        doc.text(`Split Method: ${expense.splitMethod.charAt(0).toUpperCase() + expense.splitMethod.slice(1)}`);
+        doc.moveDown();
+
+        doc.fontSize(18)
+            .text(`Splitter Details `, { underline: true });
+        doc.moveDown(0.5);
+
+        const columnWidth = 150;
+        const startX = 50;
+        let currentY = doc.y;
+
+        doc.fontSize(12)
+            .text(`Name`, startX, currentY);
+        doc.text('Contact', startX + columnWidth, currentY);
+        doc.text('Share/Value', startX + columnWidth * 2, currentY);
+        doc.text('Amount Owned', startX + columnWidth * 3, currentY);
+        doc.moveDown();
+
+        expense.splitters.forEach(splitter => {
+            currentY = doc.y;
+
+            let amountOwnedText = `${splitter.amountOwned.toFixed(2)}`;
+
+            let splitValueText = `${splitter.splitValue}`;
+            if (expense.splitMethod === 'percentage') {
+                splitValueText += '%';
+            } else if (expense.splitMethod === 'amount') {
+                splitValueText = `$${splitter.splitValue.toFixed(2)}`;
+            }
+
+            doc.fontSize(10).text(splitter.name, startX, currentY, { width: columnWidth, ellipsis: true });
+            doc.text(splitter.contact, startX + columnWidth, currentY, { width: columnWidth, ellipsis: true });
+            doc.text(splitValueText, startX + columnWidth * 2, currentY, { width: columnWidth, ellipsis: true });
+            doc.text(amountOwnedText, startX + columnWidth * 3, currentY);
+            doc.moveDown(0.5); // Move down for the next row
+
+        })
+
+        doc.moveDown();
+        doc.fontSize(10).text('Generated by ExpenseCare : Expense Splitter For Shared Living.', { align: 'center' });
+
+
+        doc.end();
+
+    } catch (err) {
+        console.error('Error generating PDF:', err);
+        next(err);
     }
+
 }
