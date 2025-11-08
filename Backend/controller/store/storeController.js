@@ -1,7 +1,7 @@
 const User = require('../../model/User');
 const Income = require('../../model/setincome');
 const Expense = require('../../model/splitmodel');
-
+const PDFDocument = require('pdfkit');
 
 exports.getdashboard = async (req, res, next) => {
     const userid = req.user && req.user._id;
@@ -225,3 +225,17 @@ exports.postsplit = async (req, res, next) => {
         next(err); 
     }
 } 
+
+exports.downloadpdf = async(req, res, next) =>{
+    const {expenseId} = req.params;
+    const userid = req.user && (req.user._id || req.user.uid);
+    if (!userid) {
+        return res.redirect('/login');
+    }
+    
+    const expense = await Expense.findOne({_id : expenseId, user: userid})
+
+    if(!expense){
+        return res.status(404).send('Expense not found or unauthorized.').res.redirect('./split');
+    }
+}
