@@ -1,23 +1,69 @@
 <%- include('../partials/mainhead') %>
     <%- include('../partials/navbar') %>
 
-        <% newExpense.forEach(expense=>{ %>
-            <h3>Expense: <%= expense.description %> - Amount: $<%= expense.amount %>
-            </h3>
-            <svg xmlns="http://www.w3.org/2000/svg" width="4vh" height="4vh" fill="currentColor" class="bi bi-trash3"
-                viewBox="0 0 16 16">
-                <path
-                    d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5" />
-            </svg>
-            <ul>
-                <% expense.splitters.forEach(splitter=> { %>
-                    <li>
-                        <%= splitter.name %> owes: $<%= splitter.amountOwned.toFixed(2) %>
-                    </li>
+        <div class="container my-5">
+            <h1 class="text-center mb-5 display-4" id="titleofpage">Split History</h1>
 
-                    <% }) %>
-            </ul>
-            <hr>
-            <%})%>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <% if (newExpense && newExpense.length) { %>
+                        <% newExpense.forEach(expense=> { %>
 
-                <%- include('../partials/footer') %>
+                            <div class="card shadow-lg rounded-3 mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+
+                                        <h4 class="card-title text-dark fw-bold mb-0">
+                                            <%= expense.description %>
+                                        </h4>
+
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge text-bg-primary fs-6 me-3 p-2">
+                                                Amount: ₹<%= expense.amount.toFixed(2) %>
+                                            </span>
+
+                                            <a href="#" class="text-danger opacity-75 delete-btn"
+                                                title="Delete Expense">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                                                    <path
+                                                        d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5" />
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <h6 class="mb-2 text-muted">Splitters:</h6>
+
+                                    <ul class="list-group list-group-flush border rounded">
+                                        <% expense.splitters.forEach(splitter=> { %>
+                                            <li
+                                                class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span class="fw-medium text-dark">
+                                                    <%= splitter.name %>
+                                                </span>
+                                                <% if (splitter.name === "You (Payer)") { %>
+                                                    <span class="text-success fw-bold">
+                                                        Settled Up
+                                                    </span>
+                                                    <% } else { %>
+                                                        <span class="text-danger fw-bold">
+                                                            Owes: ₹<%= splitter.amountOwned.toFixed(2) %>
+                                                        </span>
+                                                        <% } %>
+                                            </li>
+                                            <% }) %>
+                                    </ul>
+                                </div>
+                            </div>
+                            <% }) %>
+                                <% } else { %>
+                                    <div class="alert alert-info text-center" role="alert">
+                                        No expenses found. Time to start splitting!
+                                    </div>
+                                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <%- include('../partials/footer') %>
