@@ -7,4 +7,5 @@ storerouter.get('/setincome', storeController.getsetincome);
 storerouter.post('/setincome', storeController.postsetincome);
 storerouter.get('/splits', storeController.getsplit);
 storerouter.post('/splits', storeController.postsplit);
+storerouter.get('/mysplithistory', storeController.getsplithistroy);
 module.exports = storerouter;
