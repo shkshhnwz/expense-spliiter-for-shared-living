@@ -307,9 +307,14 @@ exports.downloadpdf = async (req, res, next) => {
 }
 
 exports.getsplithistroy = async(req,res,next)=>{
-    res.render('store/mysplithistory', {
+
+    Expense.find().then((newExpense)=>{
+        res.render('store/mysplithistory', {
+        newExpense : newExpense,
         pageTitle: "Histroy of Splits",
         stylesheet: "/mysplithistory.css",
         user: req.user
     })
+    })
+
 }
