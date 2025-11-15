@@ -8,4 +8,5 @@ storerouter.post('/setincome', storeController.postsetincome);
 storerouter.get('/splits', storeController.getsplit);
 storerouter.post('/splits', storeController.postsplit);
 storerouter.get('/mysplithistory', storeController.getsplithistroy);
+storerouter.get('/download/expense/:expenseId', storeController.downloadpdf);
 module.exports = storerouter;

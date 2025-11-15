@@ -1,60 +1,49 @@
 body {
     min-height: 100vh;
-    background-color: #F8F9FA; /* Light background */
+    background-color: #F8F9FA;
 }
 
-#titleofpage{
-    color: #343a40; /* Dark text for title */
+#titleofpage {
+    color: #343a40;
     font-weight: 700;
 }
 
-#titleofpage:hover{
+#titleofpage:hover {
     transform: translateY(-2px);
     transition: transform 0.2s ease;
 }
 
-/* Custom Glass-Morphism style for the card */
+
 .card {
-    /* Only apply the glass effect to the card component */
-    background: rgba(255, 255, 255, 0.7); /* Slightly transparent white */
+
+    background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(8px) saturate(110%);
     -webkit-backdrop-filter: blur(8px) saturate(110%);
 }
 
-/* Small hover effect to make it feel more interactive */
+
 .card:hover {
     transform: translateY(-2px);
     transition: transform 0.2s ease;
 }
 
-/* --- REVISIONS BELOW --- */
-
-/* 1. List Container: Remove border and rounded corners. */
 .list-group {
     border: none !important;
     border-radius: 0 !important;
 }
 
-/* 2. List Items: Add background color and vertical margin for spacing. */
 .list-group-item {
-    /* Set the requested gray background and remove default Bootstrap border */
-    background-color: #f1f1f1 !important; /* Soft light gray for split details */
+    background-color: #f1f1f1 !important;
     border: none;
-    
-    /* Add distance between rows (top/bottom margin) */
-    margin-bottom: 8px; 
-    
-    /* Add some horizontal padding for comfort */
+    margin-bottom: 8px;
     padding: 10px 15px;
-    
-    /* Re-add rounded corners to the items themselves for a modern look */
-    border-radius: 6px; 
+    border-radius: 6px;
 }
 
-/* Optional: Subtle hover on list items (adjusted for new background) */
+
 .list-group-item:hover {
-    background-color: #e0e0e0 !important; /* Slightly darker gray on hover */
+    background-color: #e0e0e0 !important;
 }
 
 .delete-btn:hover {
