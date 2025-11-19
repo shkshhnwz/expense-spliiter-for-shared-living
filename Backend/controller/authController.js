@@ -86,3 +86,17 @@ exports.getlogoutsuccess = (req,res,next) =>{
     }
     )
 }
+
+exports.getforgotpassword = (req, res, next) =>{
+    res.render("auth/forgotpassword", {
+        user : req.user,
+        pageTitle : "Forgot Password",
+        stylesheet : "/forgotpassword.css"
+    })
+}
+
+exports.postforgotpassword = async(req, res,next)=>{
+    const {emailuser} = req.body;
+    
+    
+}
