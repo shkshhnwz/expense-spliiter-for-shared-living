@@ -1,5 +1,8 @@
 const admin = require('firebase-admin');
 const User = require('../model/User'); 
+const otpgenerator = require('otp-generator');
+const nodemailer = require('nodemailer');
+const Otp = require('../model/otpmodel');
 
 exports.getlogin = (req, res, next) => {
     res.render("auth/login", {
@@ -97,6 +100,6 @@ exports.getforgotpassword = (req, res, next) =>{
 
 exports.postforgotpassword = async(req, res,next)=>{
     const {emailuser} = req.body;
-    
+     
     
 }
