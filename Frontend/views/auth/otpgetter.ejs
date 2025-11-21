@@ -1,0 +1,119 @@
+<%- include('../partials/mainhead') %>
+<div class="d-flex flex-column vh-100 overflow-hidden">
+    
+    <%- include('../partials/navbar') %>
+
+    <div class="flex-grow-1 d-flex align-items-center justify-content-center p-3">
+
+        <div class="center-card card shadow-lg border-0" style="max-width: 450px; width: 100%;">
+            <div class="card-body p-4">
+                <h2 class="h4 mb-2 text-center text-black fw-bold">Security Verification</h2>
+                <p class="text-center text-muted mb-4">Enter the 6-digit code sent to your email</p>
+
+                <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+                    <div class="alert alert-danger text-center" role="alert">
+                        <%= errorMessage %>
+                    </div>
+                <% } %>
+                
+                <form action="/verify-reset" method="post" id="resetForm">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Email Account</label>
+                        <input type="email" class="form-control" name="emailuser" 
+                               value="<%= typeof email !== 'undefined' ? email : '' %>" 
+                               id="emailField" required readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-black">Enter OTP</label>
+                        <div class="d-flex justify-content-center mb-2">
+                            <input type="number" class="otp-input form-control" maxlength="1" pattern="\d*">
+                            <input type="number" class="otp-input form-control" maxlength="1" pattern="\d*">
+                            <input type="number" class="otp-input form-control" maxlength="1" pattern="\d*">
+                            <input type="number" class="otp-input form-control" maxlength="1" pattern="\d*">
+                            <input type="number" class="otp-input form-control" maxlength="1" pattern="\d*">
+                            <input type="number" class="otp-input form-control" maxlength="1" pattern="\d*">
+                        </div>
+                        <input type="hidden" name="otp" id="hiddenOtp">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-black">New Password</label>
+                        <input type="password" class="form-control" name="newPassword" 
+                               placeholder="Minimum 6 characters" required minlength="6">
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary py-2" type="submit" 
+                                style="background-color: #8754ff; border-color:#8754ff; font-weight: 600;">
+                            Change Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <%- include('../partials/footer') %>
+
+</div>
+
+<script>
+    // 1. Handle OTP Input Focus
+    const inputs = document.querySelectorAll('.otp-input');
+    const hiddenOtp = document.getElementById('hiddenOtp');
+    const form = document.getElementById('resetForm');
+
+    // Load email from localStorage if the input is empty (from the previous Send OTP step)
+    const emailField = document.getElementById('emailField');
+    const storedEmail = localStorage.getItem('resetEmail');
+    if(!emailField.value && storedEmail) {
+        emailField.value = storedEmail;
+    }
+
+    inputs.forEach((input, index) => {
+        input.addEventListener('keyup', (e) => {
+            // Use KeyUp to detect the number entry
+            const currentInput = input;
+            const nextInput = input.nextElementSibling;
+            const prevInput = input.previousElementSibling;
+
+            // If backspace is pressed, go back
+            if (e.key === "Backspace") {
+                input.value = "";
+                if (prevInput) prevInput.focus();
+                return;
+            }
+
+            // If a number is entered, move next
+            if (currentInput.value.length > 1) {
+                currentInput.value = currentInput.value.slice(0, 1);
+            }
+            
+            if (currentInput.value !== "" && nextInput) {
+                nextInput.focus();
+            }
+            
+            updateHiddenOtp();
+        });
+    });
+
+    function updateHiddenOtp() {
+        let otpValue = "";
+        inputs.forEach(input => {
+            otpValue += input.value;
+        });
+        hiddenOtp.value = otpValue;
+    }
+
+    // Before submit, ensure OTP is full
+    form.addEventListener('submit', (e) => {
+        updateHiddenOtp(); // Ensure value is fresh
+        if (hiddenOtp.value.length !== 6) {
+            e.preventDefault();
+            alert("Please enter the complete 6-digit OTP code.");
+        }
+    });
+</script>

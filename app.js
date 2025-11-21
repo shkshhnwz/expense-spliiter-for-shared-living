@@ -56,8 +56,8 @@ app.get('/', (req, res) => {
 });
 
 // Database & Server Start
-const PORT = process.env.PORT || 3000; // Use env port
-const DB_PATH = process.env.MONGO_URI; // Use env secret
+const PORT = process.env.PORT || 3000; 
+const DB_PATH = process.env.MONGO_URI; 
 
 mongoose.connect(DB_PATH)
   .then(() => {

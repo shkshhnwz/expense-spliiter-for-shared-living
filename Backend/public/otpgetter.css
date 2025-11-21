@@ -1,0 +1,20 @@
+.otp-input {
+        width: 45px;
+        height: 50px;
+        text-align: center;
+        font-size: 1.5rem;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        margin: 0 5px;
+    }
+    .otp-input:focus {
+        border-color: #8754ff;
+        box-shadow: 0 0 0 0.2rem rgba(135, 84, 255, 0.25);
+        outline: none;
+    }
+    /* Hide number arrows in Chrome, Safari, Edge, Opera */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    }
