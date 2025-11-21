@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const User = require('../model/User'); // Assuming path to your User model
 
 module.exports = async (req, res, next) => {
-    // 1. Get the session cookie (set by postSessionLogin)
+ 
     const sessionCookie = req.cookies.__session || '';
 
     // 2. Clear cookie/Redirect if no cookie is present
