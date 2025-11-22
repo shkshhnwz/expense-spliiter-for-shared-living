@@ -1,226 +1,226 @@
 <%- include('../partials/mainhead') %>
-    <%- include('../partials/navbar') %>
+<%- include('../partials/navbar') %>
 
-        <div class="container py-4 py-sm-5 mobile-center">
-            <div class="row justify-content-center">
-                <div class="col-12 col-md-9 col-lg-7">
-                    <h2 class="inter-header text-center mb-4">Provide your split details</h2>
+<div class="container py-4 py-sm-5 mobile-center">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-9 col-lg-7">
+            <h2 class="inter-header text-center mb-4">Add New Expense</h2>
 
-                    <form action="/dashboard/splits" class="needs-validation" method="post" id="splitForm">
+            <form action="/dashboard/split" class="needs-validation" method="post" id="splitForm">
 
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-header text-white bg-purple text-center">Name of the split</div>
-                            <div class="card-body">
-                                <div class="row g-2">
-                                    <div class="col-12">
-                                        <label for="splitName" class="form-label visually-hidden">Split Name</label>
-                                        <input class="form-control" type="text" name="splitName" id="splitName"
-                                            placeholder="(eg. food, travel, etc)" required>
-                                    </div>
+                <div class="card mb-3 shadow-sm border-primary">
+                    <div class="card-header bg-primary text-white text-center">Expense Context</div>
+                    <div class="card-body">
+                        <div class="row g-3 justify-content-center mb-3">
+                            <div class="col-auto">
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="expenseType" id="typePersonal" value="personal" checked>
+                                    <label class="btn btn-outline-primary" for="typePersonal">
+                                        <i class="fas fa-user"></i> Personal
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="expenseType" id="typeGroup" value="group">
+                                    <label class="btn btn-outline-primary" for="typeGroup">
+                                        <i class="fas fa-users"></i> Group Split
+                                    </label>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-header text-white bg-purple text-center">Amount and Date</div>
-                            <div class="card-body">
-                                <div class="row g-2">
-                                    <div class="col-md-6 mb-3 mb-md-0">
-                                        <label for="payableAmount" class="form-label">Total amount</label>
-                                        <input class="form-control" type="number" step="0.01" name="payableAmount"
-                                            id="payableAmount" placeholder="e.g. 50.00" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="dateofExpense" class="form-label">Date of Bill</label>
-                                        <input class="form-control" type="date" name="dateofExpense" id="dateofExpense"
-                                            required>
-                                    </div>
-                                </div>
-                            </div>
+                        <div id="group-selection-container" style="display: none;">
+                            <label for="groupId" class="form-label fw-bold">Select Group</label>
+                            <select class="form-select" name="groupId" id="groupId">
+                                <option value="" disabled selected>-- Choose a Group --</option>
+                                <% if (typeof groups !== 'undefined' && groups.length > 0) { %>
+                                    <% groups.forEach(group => { %>
+                                        <option value="<%= group._id %>"><%= group.name %></option>
+                                    <% }) %>
+                                <% } else { %>
+                                    <option value="" disabled>No groups found.</option>
+                                <% } %>
+                            </select>
                         </div>
-
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-header text-white bg-purple text-center">How to split?</div>
-                            <div class="card-body">
-                                <label for="splitMethod" class="form-label">Select Split Method</label>
-                                <select class="form-select" name="splitMethod" id="splitMethod" required>
-                                    <option value="" disabled selected>Choose a method</option>
-                                    <option value="equal">Split Equally</option>
-                                    <option value="amount">By Exact Amounts</option>
-                                    <option value="percentage">By Percentage</option>
-                                    <option value="shares">By Shares</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="card mb-3 shadow-sm">
-                            <div class="card-header text-white bg-purple text-center">Splitter Details</div>
-                            <div class="card-body">
-                                <p class="text-muted small">The payer (You) must be included in the split.</p>
-
-                                <div class="mb-3">
-                                    <label for="numSplitters" class="form-label">Total Number of People Splitting
-                                        (Including You)</label>
-                                    <input class="form-control" type="number" id="numSplitters" min="1" value="1"
-                                        required>
-                                </div>
-
-                                <div id="splitter-fields-container">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-center mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">Submit Expense Split</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-header text-white bg-purple text-center">Expense Details</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="splitName" class="form-label">Description</label>
+                            <input class="form-control" type="text" name="splitName" id="splitName"
+                                placeholder="(e.g. Grocery, Rent, Dinner)" required>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="payableAmount" class="form-label">Total Amount</label>
+                                <input class="form-control" type="number" step="0.01" name="payableAmount"
+                                    id="payableAmount" placeholder="0.00" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dateofExpense" class="form-label">Date</label>
+                                <input class="form-control" type="date" name="dateofExpense" id="dateofExpense"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="shared-expense-logic" style="display: none;">
+                    
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-header text-white bg-purple text-center">How to split?</div>
+                        <div class="card-body">
+                            <label for="splitMethod" class="form-label">Select Split Method</label>
+                            <select class="form-select" name="splitMethod" id="splitMethod">
+                                <option value="equal" selected>Split Equally</option>
+                                <option value="amount">By Exact Amounts</option>
+                                <option value="percentage">By Percentage</option>
+                                <option value="shares">By Shares</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-header text-white bg-purple text-center">Splitter Details</div>
+                        <div class="card-body">
+                            <p class="text-muted small">The payer (You) is included automatically.</p>
+
+                            <div class="mb-3">
+                                <label for="numSplitters" class="form-label">Total People (Including You)</label>
+                                <input class="form-control" type="number" id="numSplitters" min="1" value="1">
+                            </div>
+
+                            <div id="splitter-fields-container">
+                                </div>
+                        </div>
+                    </div>
+
+                </div> <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Save Transaction</button>
+                </div>
+            </form>
         </div>
+    </div>
+</div>
 
-        <%- include('../partials/footer') %>
+<%- include('../partials/footer') %>
 
-            <script>
-               // Wait for the entire document to be fully loaded before running the script
+<script>
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Get references to the DOM elements
-    // Using const for elements that won't be reassigned
+    
+    // --- DOM Elements ---
     const container = document.getElementById('splitter-fields-container');
     const numSplittersInput = document.getElementById('numSplitters');
     const payableAmountInput = document.getElementById('payableAmount');
     const splitMethodSelect = document.getElementById('splitMethod');
+    
+    // NEW: Toggle Elements
+    const typePersonal = document.getElementById('typePersonal');
+    const typeGroup = document.getElementById('typeGroup');
+    const groupSelectionContainer = document.getElementById('group-selection-container');
+    const sharedExpenseLogic = document.getElementById('shared-expense-logic');
+    const groupSelect = document.getElementById('groupId');
 
-    // --- Core Functions ---
+    // --- 1. LOGIC TO HANDLE TOGGLE (Personal vs Group) ---
+    function handleContextChange() {
+        if (typePersonal.checked) {
+            // Hide Group & Shared Logic
+            groupSelectionContainer.style.display = 'none';
+            sharedExpenseLogic.style.display = 'none';
+            
+            // Remove 'required' from Group ID so form submits
+            groupSelect.removeAttribute('required');
+            
+            // Reset Splitters to 1 (Just me) to keep internal logic clean
+            numSplittersInput.value = 1;
+            renderSplitterFields(); 
+        } else {
+            // Show Group & Shared Logic
+            groupSelectionContainer.style.display = 'block';
+            sharedExpenseLogic.style.display = 'block';
+            
+            // Make Group ID required
+            groupSelect.setAttribute('required', 'true');
+        }
+    }
 
-    // 1. Generates the HTML for a single splitter row
+    // Listeners for the toggle
+    typePersonal.addEventListener('change', handleContextChange);
+    typeGroup.addEventListener('change', handleContextChange);
+
+    // Run once on load
+    handleContextChange();
+
+    // --- 2. EXISTING SPLIT LOGIC (Slightly Modified) ---
+
     const generateSplitterRow = (index) => {
         const isPayer = index === 0;
-        const title = isPayer ? `Splitter ${index + 1} (You - The Payer)` : `Splitter ${index + 1}`;
-        const namePlaceholder = isPayer ? "Your Name (Payer)" : "Splitter's Name";
+        const title = isPayer ? `Splitter ${index + 1} (You)` : `Splitter ${index + 1}`;
+        const namePlaceholder = isPayer ? "Your Name" : "Name";
         const readonlyAttr = isPayer ? 'readonly' : '';
-        const contactPlaceholder = "Splitter's Contact";
-        const nameValue = isPayer ? "You (Payer)" : "";
+        const nameValue = isPayer ? "You" : "";
 
-        // Template literal for clean HTML generation
         return `
-            <div class="row g-2 mb-3 splitter-row" data-index="${index}">
-                <div class="col-12">
-                    <p class="mb-1 fw-bold">${title}</p>
-                </div>
+            <div class="row g-2 mb-3 splitter-row">
+                <div class="col-12"><p class="mb-1 fw-bold">${title}</p></div>
                 <div class="col-md-5">
                     <input type="text" class="form-control" name="splitterNames[${index}]" placeholder="${namePlaceholder}" value="${nameValue}" ${readonlyAttr} required>
                 </div>
-                
                 ${isPayer 
-                    // Payer doesn't need a contact field here, so use an empty column for spacing
                     ? `<div class="col-md-4"></div>` 
-                    : `<div class="col-md-4">
-                        <input type="text" class="form-control" name="splitterContact[${index}]" placeholder="${contactPlaceholder}" required> 
-                    </div>`
+                    : `<div class="col-md-4"><input type="text" class="form-control" name="splitterContact[${index}]" placeholder="Contact" required></div>`
                 }
-                
                 <div class="col-md-3">
-                    <input type="number" step="0.01" class="form-control split-value-input" name="splitValues[${index}]" placeholder="Value" required>
+                    <input type="number" step="0.01" class="form-control split-value-input" name="splitValues[${index}]" placeholder="0.00" required>
                 </div>
             </div>
         `;
     };
 
-    // 2. Renders the correct number of splitter fields
     const renderSplitterFields = () => {
-        // Use parseInt() and the '|| 0' fallback to ensure we get a number
-        let targetCount = parseInt(numSplittersInput.value) || 0;
+        let targetCount = parseInt(numSplittersInput.value) || 1;
+        if (targetCount < 1) targetCount = 1;
 
-        if (targetCount < 1) {
-            // Minimum splitters must be 1 (the payer/admin)
-            numSplittersInput.value = 1;
-            targetCount = 1;
-        }
-
-        // Clear existing rows using innerHTML = ''
         container.innerHTML = ''; 
-
         for (let i = 0; i < targetCount; i++) {
-            // Append the new HTML row
             container.insertAdjacentHTML('beforeend', generateSplitterRow(i));
         }
-
         updateSplitValues();
         updateInputBehavior();
     };
 
-    // 3. Calculates and updates the split value inputs
     const updateSplitValues = () => {
-        // Use .value for input field values
         const amount = parseFloat(payableAmountInput.value) || 0;
         const method = splitMethodSelect.value;
-        
-        // Use querySelectorAll to get a NodeList of all value inputs
         const valueInputs = container.querySelectorAll('.split-value-input');
         const count = valueInputs.length;
 
-        // Only attempt automatic calculation if 'equal' is selected
         if (method === 'equal' && amount > 0 && count > 0) {
             const equalShare = amount / count;
-            
-            // Use forEach to iterate over the NodeList (like jQuery's .each())
-            valueInputs.forEach(input => {
-                // Set the value (rounded to 2 decimal places)
-                input.value = equalShare.toFixed(2);
-            });
-        } else if (method !== 'equal') {
-            // Clear values for manual entry methods (Amount, Percentage, Shares)
-            valueInputs.forEach(input => {
-                input.value = '';
-            });
+            valueInputs.forEach(input => input.value = equalShare.toFixed(2));
         }
     };
 
-    // 4. Sets placeholder and readonly state based on split method
     const updateInputBehavior = () => {
         const method = splitMethodSelect.value;
-        let placeholderText = '';
-
-        if (method === 'equal') {
-            placeholderText = 'Calculated Equally';
-        } else if (method === 'amount') {
-            placeholderText = 'Exact Amount Owed';
-        } else if (method === 'percentage') {
-            placeholderText = 'Percentage (%)';
-        } else if (method === 'shares') {
-            placeholderText = 'Number of Shares';
-        }
-
         const valueInputs = container.querySelectorAll('.split-value-input');
-        
         valueInputs.forEach(input => {
-            // Use setAttribute to change the placeholder
-            input.setAttribute('placeholder', placeholderText);
-
-            // Use .readOnly property to enable/disable manual input
-            // The input is readonly ONLY if method is 'equal'
             input.readOnly = (method === 'equal');
         });
     };
 
-    // --- Event Listeners ---
-    
-    // Use .addEventListener() instead of .on()
-    // Trigger rendering when number of splitters changes
-    // We add listeners for both 'change' and 'keyup' for real-time responsiveness
+    // Listeners
     numSplittersInput.addEventListener('change', renderSplitterFields);
     numSplittersInput.addEventListener('keyup', renderSplitterFields);
-
-    // Trigger value recalculation when amount or method changes
     payableAmountInput.addEventListener('change', updateSplitValues);
     payableAmountInput.addEventListener('keyup', updateSplitValues);
-    
     splitMethodSelect.addEventListener('change', () => {
         updateInputBehavior();
-        updateSplitValues(); // Update values if method is switched to 'equal'
+        updateSplitValues();
     });
 
-    // --- Initialization ---
-    renderSplitterFields(); // Initial render on page load
+    // Init
+    renderSplitterFields();
 });
-            </script>
+</script>

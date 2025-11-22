@@ -1,50 +1,101 @@
 body {
-     min-height: 100vh;
-     background-color: #F8F9FA;
-     margin: 0;
-     font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    min-height: 100vh;
+    background-color: #F8F9FA;
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
 /* small helper to center on mobile only */
 .mobile-center {
-  /* default (desktop/tablet) keep normal flow; mobile will get center layout below */
+    /* default (desktop/tablet) keep normal flow */
 }
 
 /* when viewport is narrow, center container vertically and horizontally */
 @media (max-width: 576px) {
-  .mobile-center {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-  }
+    .mobile-center {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
 }
 
-/* keep custom visual styles but DO NOT override Bootstrap .card/.card-header/.card-body */
-/* use a small utility class (bg-purple) applied to headers in the EJS above */
-.bg-purple {
-  background-color: #8754ff !important;
+/* --- THEME COLORS --- */
+
+/* 1. The Card Headers */
+/* Matches the "Expense Context" card if you used bg-primary, 
+   and the other cards using bg-purple */
+.bg-purple, .bg-primary {
+    background-color: #8754ff !important;
+    border-color: #8754ff !important;
+}
+
+/* 2. The Card Borders */
+.border-primary {
+    border-color: #8754ff !important;
 }
 
 /* tweak the reusable heading above the form */
 .inter-header {
-     font-weight: 600;
-     margin-top: 0.25rem;
-     margin-bottom: 0.75rem;
-     text-align: center;
-     font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+    margin-bottom: 0.75rem;
+    text-align: center;
+    font-size: 1.25rem;
 }
 
-/* subtle customizations for form-check visuals without breaking Bootstrap */
+/* --- NEW: TOGGLE BUTTONS STYLING --- */
+/* This overrides the default blue 'btn-outline-primary' to match your purple theme */
+
+.btn-outline-primary {
+    color: #6b38ff;
+    border-color: #6b38ff;
+}
+
+.btn-outline-primary:hover {
+    background-color: #6b38ff;
+    border-color: #6b38ff;
+    color: #fff;
+}
+
+/* The state when the radio button is CHECKED */
+.btn-check:checked + .btn-outline-primary {
+    background-color: #6b38ff;
+    border-color: #6b38ff;
+    color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(107, 56, 255, 0.5); /* Purple glow */
+}
+
+/* --- NEW: GROUP SELECTION CONTAINER --- */
+/* Makes the dropdown look distinct when it slides into view */
+#group-selection-container {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #6b38ff; /* Purple accent on the left */
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Simple fade-in animation for the hidden sections */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- EXISTING FORM STYLES --- */
+
+/* subtle customizations for form-check visuals */
 .form-check-input[type="radio"] {
-     width: 1.15em;
-     height: 1.15em;
-     border-width: 1.6px;
+    width: 1.15em;
+    height: 1.15em;
+    border-width: 1.6px;
 }
 
 /* larger, friendlier inputs */
-.form-control.form-control-lg {
+.form-control, .form-select {
     padding: 0.75rem 0.9rem;
     border-radius: 10px;
 }
@@ -54,7 +105,27 @@ body {
     border: none;
 }
 
+.btn-primary:hover {
+    background: #562acc; /* Slightly darker purple on hover */
+}
+
 /* subtle card shadow override for a modern look */
 .card.shadow-sm {
     border-radius: 12px;
+    border: none; /* Removes default gray border for cleaner look */
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
+}
+
+/* --- NEW: SPLITTER ROWS --- */
+/* Adds separation between the dynamic rows of people */
+.splitter-row {
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.splitter-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
 }

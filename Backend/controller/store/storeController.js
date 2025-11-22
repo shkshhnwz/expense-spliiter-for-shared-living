@@ -1,7 +1,9 @@
+const { group } = require('console');
 const User = require('../../model/User');
 const Income = require('../../model/setincome');
 const Expense = require('../../model/splitmodel');
 const PDFDocument = require('pdfkit');
+const Group = require('../../model/Group'); 
 
 exports.getdashboard = async (req, res, next) => {
     const userid = req.user && req.user._id;
@@ -101,14 +103,32 @@ exports.postsetincome = async (req, res, next) => {
     }
 }
 
-exports.getsplit = (req, res, next) => {
-    res.render('store/split', {
-        pageTitle: "Split a bill",
-        stylesheet: "/split.css",
-        user: req.user
-    })
-}
 
+
+
+exports.getsplit = async (req, res, next) => {
+    try {
+
+        const userid = req.user && req.user._id;
+
+        if (!userid) {
+            return res.redirect('/login');
+        }
+
+        const userGroups = await Group.find({ members: userid });
+
+        res.render('store/split', {
+            pageTitle: "Split a bill",
+            stylesheet: "/split.css",
+            user: req.user,
+            groups: userGroups 
+        });
+
+    } catch (err) {
+        console.error("Error loading split page:", err);
+        next(err);
+    }
+}
 exports.postsplit = async (req, res, next) => {
     try {
         const userid = req.user && (req.user._id || req.user.uid);
@@ -399,14 +419,22 @@ exports.downloadpdf = async (req, res, next) => {
 
 
 exports.getsplithistroy = async (req, res, next) => {
+try{ 
+    const newExpense = await Expense.find({
+        $or:[
+            {user: userid},
+            {paidBy : userid}
+        ]
+    }).sort({date: -1});
 
-    Expense.find().then((newExpense) => {
-        res.render('store/mysplithistory', {
-            newExpense: newExpense,
-            pageTitle: "Histroy of Splits",
+    res.render('store/myspithistory',{
+        newExpense: newExpense,
+            pageTitle: "History of Splits", // Fixed typo 'Histroy'
             stylesheet: "/mysplithistory.css",
             user: req.user
-        })
-    })
+    })}
+    catch(err){
+        next(err);
+    }
 
 }
