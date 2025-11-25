@@ -52,17 +52,42 @@ exports.postSessionLogin = async (req, res) => {
     try {
         const idToken = req.body.idToken.toString();
         const expiresIn = 60 * 60 * 24 * 5 * 1000;
+
+        // 1. Verify the ID Token FIRST to get user data
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const { uid, email, name, picture } = decodedToken;
+
+        // 2. Check if user exists in MongoDB
+        let user = await User.findOne({ firebaseUid: uid });
+
+        // 3. IF USER DOES NOT EXIST -> CREATE THEM (Auto-Register)
+        if (!user) {
+            console.log("New Google User detected. creating in MongoDB...");
+            user = new User({
+                firebaseUid: uid,
+                name: name || "Google User", // Fallback if name is missing
+                email: email,
+                phone: "N/A" // Google doesn't always provide phone, handle accordingly
+            });
+            await user.save();
+        }
+
+        // 4. Create Session Cookie
         const sessionCookie = await admin
             .auth()
             .createSessionCookie(idToken, { expiresIn });
+            
         const options = { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production' };
+        
         res.cookie('__session', sessionCookie, options);
-        console.log('User authenticated and session cookie set.');
-        res.status(200).send({ status: 'success', message: 'Session cookie set' });
+        console.log(`Session created for ${user.email}`);
+        
+        // 5. Send JSON Success
+        res.status(200).json({ status: 'success' }); 
 
     } catch (error) {
         console.error("Error during session login:", error);
-        res.status(401).send('UNAUTHORIZED REQUEST! Failed to create session.');
+        res.status(401).send('UNAUTHORIZED REQUEST!');
     }
 };
 

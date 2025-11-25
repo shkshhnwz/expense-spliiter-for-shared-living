@@ -9,4 +9,5 @@ storerouter.get('/splits', storeController.getsplit);
 storerouter.post('/splits', storeController.postsplit);
 storerouter.get('/mysplithistory', storeController.getsplithistroy);
 storerouter.get('/download/expense/:expenseId', storeController.downloadpdf);
+storerouter.get('/group', storeController.getgroup);
 module.exports = storerouter;

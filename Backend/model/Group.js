@@ -11,9 +11,16 @@ const groupSchema = new Schema({
         enum: ['Apartment', 'Trip', 'Other'],
         default: 'Other'
     },
+    // CHANGED: Members is now an array of objects, not just IDs
     members: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        _id: false, // Disable auto-ID for subdocs if not needed, or keep true
+        name: { type: String, required: true },
+        contact: { type: String }, // Phone or Email
+        userId: { 
+            type: mongoose.Schema.Types.ObjectId, 
+            ref: 'User',
+            required: false // Optional: Only set if they are a registered user
+        }
     }],
     budget: {
         type: Number,
@@ -21,7 +28,8 @@ const groupSchema = new Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        required: true
     }
 }, { timestamps: true });
 

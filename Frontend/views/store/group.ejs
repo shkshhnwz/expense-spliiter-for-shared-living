@@ -1,0 +1,126 @@
+<%- include('../partials/mainhead') %>
+<%- include('../partials/navbar') %>
+
+<div class="container py-4 py-sm-5 mobile-center">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-9 col-lg-7">
+      <h2 class="inter-header text-center mb-4">Create a New Group</h2>
+
+      <form class="needs-validation" id="groupForm" action="/store/group" method="post" novalidate>
+        
+        <!-- Group Name -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header text-white bg-purple text-center">Group Name</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="groupName" class="form-label">Name</label>
+              <input type="text" class="form-control form-control-lg" name="name" id="groupName" placeholder="Enter group name" required>
+              <div class="invalid-feedback">Group name is required.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group Type -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header text-white bg-purple text-center">Group Type</div>
+          <div class="card-body">
+            <div class="row g-2">
+              <div class="col-12 col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="grouptype" id="typeApartment" value="Apartment" required>
+                  <label class="form-check-label" for="typeApartment">Apartment</label>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="grouptype" id="typeTrip" value="Trip">
+                  <label class="form-check-label" for="typeTrip">Trip</label>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="grouptype" id="typeOther" value="Other">
+                  <label class="form-check-label" for="typeOther">Other</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Budget -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header text-white bg-purple text-center">Budget</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="budget" class="form-label">Total Budget</label>
+              <input type="number" class="form-control form-control-lg" name="budget" id="budget" placeholder="0.00" min="0" step="0.01">
+            </div>
+          </div>
+        </div>
+
+        <!-- Number of Members -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header text-white bg-purple text-center">Add Members</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="memberCount" class="form-label">Number of Members</label>
+              <input type="number" class="form-control form-control-lg" id="memberCount" placeholder="0" min="1" max="50" name="Members" required>
+              <small class="form-text text-muted">Enter the number of members to add details</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Members Section -->
+        <div id="membersContainer"></div>
+
+        <!-- Submit Button -->
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-primary btn-lg">Create Group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+<script>
+document.getElementById('memberCount').addEventListener('change', function() {
+  const count = parseInt(this.value) || 0;
+  const container = document.getElementById('membersContainer');
+  container.innerHTML = '';
+
+  if (count > 0) {
+    for (let i = 1; i <= count; i++) {
+      const memberCard = document.createElement('div');
+      memberCard.className = 'card mb-3 shadow-sm';
+      memberCard.innerHTML = `
+        <div class="card-header text-white bg-purple text-center">Member ${i}</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="memberName${i}" class="form-label">Name</label>
+            <input type="text" class="form-control form-control-lg" name="members[${i-1}][name]" id="memberName${i}" placeholder="Enter member name" required>
+            <div class="invalid-feedback">Member name is required.</div>
+          </div>
+          <div class="mb-3">
+            <label for="memberContact${i}" class="form-label">Contact (Phone/Email)</label>
+            <input type="text" class="form-control form-control-lg" name="members[${i-1}][contact]" id="memberContact${i}" placeholder="Enter phone or email" required>
+            <div class="invalid-feedback">Contact is required.</div>
+          </div>
+        </div>
+      `;
+      container.appendChild(memberCard);
+    }
+  }
+});
+
+// Form validation
+const form = document.getElementById('groupForm');
+form.addEventListener('submit', function(event) {
+  if (!form.checkValidity() === false) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  form.classList.add('was-validated');
+}, false);
+</script>

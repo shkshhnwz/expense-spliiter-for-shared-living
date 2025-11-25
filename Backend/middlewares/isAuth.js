@@ -1,38 +1,39 @@
-// Example: Backend/middleware/isAuth.js
 const admin = require('firebase-admin');
-const User = require('../model/User'); // Assuming path to your User model
+const User = require('../model/User'); 
 
 module.exports = async (req, res, next) => {
- 
+    // 1. Get the session cookie
     const sessionCookie = req.cookies.__session || '';
 
-    // 2. Clear cookie/Redirect if no cookie is present
+    // 2. STRICT CHECK: If no cookie, kick them out immediately
     if (!sessionCookie) {
-        req.user = null; // Ensure req.user is clean
-        return next(); // Let subsequent middleware/routes handle authentication status (e.g., dashboard controller will redirect to /login)
+        console.log('isAuth: No cookie found. Redirecting to login.');
+        return res.redirect('/login');
     }
 
-    // 3. Verify the cookie with Firebase
     try {
-        // 'checkRevoked: true' checks if the session has been manually revoked
-        const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true); 
+        // 3. Verify the cookie with Firebase
+        const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true);
         
-        // 4. Find the corresponding user in MongoDB using the Firebase UID
+        // 4. Find the user in MongoDB
         const user = await User.findOne({ firebaseUid: decodedClaims.uid });
-        
-        if (user) {
-            req.user = user; // Attach the full MongoDB user object
-        } else {
-            // User exists in Firebase but not MongoDB (Shouldn't happen with your postregister)
-            req.user = null;
+
+        // 5. STRICT CHECK: If Firebase works but MongoDB doesn't know the user
+        if (!user) {
+            console.log('isAuth: User verified in Firebase but NOT found in MongoDB.');
+            // This is likely where your Google Login loop is happening
+            return res.redirect('/login');
         }
 
+        // 6. Success! Attach user and proceed
+        req.user = user;
+        req.isLoggedIn = true;
         next();
+
     } catch (error) {
-        // If the cookie is expired, invalid, or revoked.
+        // 7. Security cleanup if token is invalid
+        console.error("isAuth Error:", error.message);
         res.clearCookie('__session');
-        req.user = null;
-        console.error("Session verification failed:", error.message);
-        next(); 
+        return res.redirect('/login');
     }
 };

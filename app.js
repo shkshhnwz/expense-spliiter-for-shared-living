@@ -29,7 +29,7 @@ app.use(session({
     secret: 'shah', // In production, move this to .env
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === 'production' } 
+    cookie: { secure: false } 
 }));
 
 app.use(express.json());
