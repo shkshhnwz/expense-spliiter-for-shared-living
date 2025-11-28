@@ -440,78 +440,99 @@ exports.getsplithistroy = async (req, res, next) => {
     }
 }
 
-exports.getgroup = (req, res, next) => {
+    exports.getgroup = (req, res, next) => {
+        try {
+            const userid = req.user && (req.user._id || req.user.uid);
+            if (!userid) return res.redirect('/login');
+
+            res.render('store/group', {
+                pageTitle: "Make Group",
+                stylesheet: "/group.css",
+                user: req.user
+            })
+
+        } catch (err) {
+            console.log("Error is cought while getting group home page", err);
+        }
+    }
+
+
+    exports.postgroup = async (req, res, next) => {
+        try {
+            // 1. Auth Check
+            const userid = req.user && (req.user._id || req.user.uid);
+            if (!userid) {
+                return res.redirect('/login');
+            }
+
+            const {
+                name,
+                grouptype,
+                budget,
+                members
+            } = req.body;
+
+            const initialMembers = [];
+            initialMembers.push({
+                name: req.user.name || req.user.displayName || "Admin",
+                contact: req.user.email,
+                userId: userid
+            });
+
+
+            if (members && Array.isArray(members)) {
+                members.forEach(member => {
+
+                    if (member.name) {
+                        initialMembers.push({
+                            name: member.name,
+                            contact: member.contact,
+                            userId: null
+                        });
+                    }
+                });
+            }
+
+
+            const group = new Group({
+                name: name,
+                type: grouptype,
+                budget: budget || 0,
+                members: initialMembers,
+                createdBy: userid
+            });
+
+
+            await group.save();
+            console.log("Group Created Successfully");
+
+
+            res.redirect('/dashboard');
+
+        } catch (err) {
+            console.log("Error caught while creating group:", err);
+
+            res.redirect('/dashboard?error=GroupCreationMsg');
+        }
+    }
+
+exports.getgroupshistory = async (req, res, next) => {
     try {
+        
         const userid = req.user && (req.user._id || req.user.uid);
         if (!userid) return res.redirect('/login');
-
-        res.render('store/group', {
-            pageTitle: "Make Group",
+        const groups = await Group.find({
+            "members.userId": userid
+        }).sort({ createdAt: -1 });       
+        res.render('store/group-history', { 
+            pageTitle: "Your Groups",
             stylesheet: "/group.css",
-            user: req.user
-        })
+            user: req.user,
+            groups: groups 
+        });
 
     } catch (err) {
-        console.log("Error is cought while getting group home page", err);
-    }
-}
-
-
-exports.postgroup = async (req, res, next) => {
-    try {
-        // 1. Auth Check
-        const userid = req.user && (req.user._id || req.user.uid);
-        if (!userid) {
-            return res.redirect('/login');
-        }
-
-        const {
-            name,
-            grouptype,
-            budget,
-            members
-        } = req.body;
-
-        const initialMembers = [];
-        initialMembers.push({
-            name: req.user.name || req.user.displayName || "Admin",
-            contact: req.user.email,
-            userId: userid
-        });
-
-
-        if (members && Array.isArray(members)) {
-            members.forEach(member => {
-
-                if (member.name) {
-                    initialMembers.push({
-                        name: member.name,
-                        contact: member.contact,
-                        userId: null
-                    });
-                }
-            });
-        }
-
-
-        const group = new Group({
-            name: name,
-            type: grouptype,
-            budget: budget || 0,
-            members: initialMembers,
-            createdBy: userid
-        });
-
-
-        await group.save();
-        console.log("Group Created Successfully");
-
-
+        console.log("Error caught while fetching group history:", err);
         res.redirect('/dashboard');
-
-    } catch (err) {
-        console.log("Error caught while creating group:", err);
-
-        res.redirect('/dashboard?error=GroupCreationMsg');
     }
 }

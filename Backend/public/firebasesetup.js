@@ -30,7 +30,7 @@ const provider = new GoogleAuthProvider();
 // Get the form and the message div from the DOM
 const loginForm = document.getElementById('loginForm');
 const authMessage = document.getElementById('authMessage');
-
+if(loginForm){ 
 loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -67,9 +67,10 @@ loginForm.addEventListener('submit', (e) => {
             authMessage.style.color = 'red';
         });
 });
-
+}
 
 const googleBtn = document.getElementById('google-signin-btn');
+if(googleBtn){ 
 googleBtn.addEventListener('click', () => {
     signInWithPopup(auth, provider)
         .then((result) => {
@@ -102,3 +103,4 @@ googleBtn.addEventListener('click', () => {
             }
         });
 });
+}

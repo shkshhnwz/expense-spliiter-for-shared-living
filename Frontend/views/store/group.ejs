@@ -6,7 +6,7 @@
     <div class="col-12 col-md-9 col-lg-7">
       <h2 class="inter-header text-center mb-4">Create a New Group</h2>
 
-      <form class="needs-validation" id="groupForm" action="/store/group" method="post" novalidate>
+      <form class="needs-validation" id="groupForm" action="/dashboard/group" method="post" novalidate>
         
         <!-- Group Name -->
         <div class="card mb-3 shadow-sm">
@@ -117,7 +117,7 @@ document.getElementById('memberCount').addEventListener('change', function() {
 // Form validation
 const form = document.getElementById('groupForm');
 form.addEventListener('submit', function(event) {
-  if (!form.checkValidity() === false) {
+  if (!form.checkValidity()) {
     event.preventDefault();
     event.stopPropagation();
   }
