@@ -11,5 +11,6 @@ storerouter.get('/mysplithistory', storeController.getsplithistroy);
 storerouter.get('/download/expense/:expenseId', storeController.downloadpdf);
 storerouter.get('/group', storeController.getgroup);
 storerouter.post('/group', storeController.postgroup);
+storerouter.get('/group/:groupId', storeController.getGroupDetails);
 storerouter.get('/group-history', storeController.getgroupshistory);
 module.exports = storerouter;

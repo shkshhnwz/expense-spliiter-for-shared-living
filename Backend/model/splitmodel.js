@@ -55,6 +55,11 @@ const ExpenseSchema = new Schema ({
         type : String,
         ref : 'User',
         required : true
+    },
+    group :{
+        type : Schema.Types.ObjectId,
+        ref : 'Group',
+        required : false
     }
 }, {timestamps : true});
 

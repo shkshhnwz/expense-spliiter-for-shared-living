@@ -1,4 +1,3 @@
-const { group } = require('console');
 const User = require('../../model/User');
 const Income = require('../../model/setincome');
 const Expense = require('../../model/splitmodel');
@@ -116,7 +115,7 @@ exports.getsplit = async (req, res, next) => {
             return res.redirect('/login');
         }
 
-        const userGroups = await Group.find({ members: userid });
+      const userGroups = await Group.find({ "members.userId": userid });
 
         res.render('store/split', {
             pageTitle: "Split a bill",
@@ -130,104 +129,120 @@ exports.getsplit = async (req, res, next) => {
         next(err);
     }
 }
+
 exports.postsplit = async (req, res, next) => {
     try {
         const userid = req.user && (req.user._id || req.user.uid);
         if (!userid) return res.redirect('/login');
 
         const {
+            expenseType,
+            groupId,
             splitName,
             payableAmount,
             dateofExpense,
             splitterNames,
             splitterContact,
             splitValues,
-            splitMethod
+            splitMethod,
+            groupSplitMethod
         } = req.body;
 
         const amount = parseFloat(payableAmount);
 
-        if (!splitName || isNaN(amount) || amount <= 0 || !dateofExpense || !splitMethod)
-            return res.redirect('/dashboard/splits?error=Invalid data');
-
-        // Convert inputs to arrays if not already
-        const namesArr = Array.isArray(splitterNames) ? splitterNames : [splitterNames];
-        const contactArr = Array.isArray(splitterContact) ? splitterContact : [splitterContact];
-        const valuesArr = Array.isArray(splitValues) ? splitValues : [splitValues];
-
-        if (namesArr.length !== contactArr.length || namesArr.length !== valuesArr.length)
-            return res.redirect('/dashboard/splits?error=Invalid array lengths');
-
-        // Payer details
-        const payerName = req.user.name || req.user.displayName || "Payer";
-        const payerContact = req.user.email || req.user.contact || "N/A";
-
-        const finalSplitters = [];
-
-        // Insert payer as first participant
-        finalSplitters.push({
-            name: payerName,
-            contact: payerContact,
-            amountOwned: 0,
-            splitValue: 0,
-            hasSettled: true
-        });
-
-        // SUM for shares / percentage modes
-        let totalValueSum = 0;
-        valuesArr.forEach(v => {
-            const num = parseFloat(v);
-            if (!isNaN(num)) totalValueSum += num;
-        });
-
-        // Process all other participants
-        for (let i = 0; i < namesArr.length; i++) {
-            const name = namesArr[i];
-            const contact = contactArr[i] || "N/A";
-            const rawVal = parseFloat(valuesArr[i]) || 0;
-
-            let amountOwned = 0;
-            let splitValToStore = rawVal;
-
-            switch (splitMethod) {
-
-                case "equal":
-                    amountOwned = amount / (namesArr.length + 1); // include payer
-                    splitValToStore = 1;
-                    break;
-
-                case "amount":
-                    amountOwned = rawVal;
-                    break;
-
-                case "percentage":
-                    amountOwned = (amount * rawVal) / 100;
-                    break;
-
-                case "shares":
-                    if (totalValueSum === 0)
-                        return res.redirect('/dashboard/splits?error=Share total cannot be zero');
-
-                    amountOwned = amount * (rawVal / totalValueSum);
-                    break;
-
-                default:
-                    return res.redirect('/dashboard/splits?error=Invalid split method');
-            }
-
-            finalSplitters.push({
-                name,
-                contact,
-                amountOwned,
-                splitValue: splitValToStore,
-                hasSettled: false
-            });
+        // 1. Basic Validation
+        if (!splitName || isNaN(amount) || amount <= 0 || !dateofExpense) {
+            return res.redirect('/dashboard/split?error=Invalid data');
         }
 
-        // Validate total
-        const totalCalc = finalSplitters.reduce((n, s) => n + s.amountOwned, 0);
-        if (Math.abs(totalCalc - amount) > 0.01)
-            return res.redirect('/dashboard/splits?error=Split total mismatch');
+        const payerName = req.user.name || req.user.displayName || "Me";
+        const payerContact = req.user.email || req.user.contact || "N/A";
+        
+        let finalSplitters = [];
+        let finalGroupId = null;
+        let activeSplitMethod = splitMethod || 'equal';
+
+        // ==========================================
+        // SCENARIO A: PERSONAL SPLIT
+        // ==========================================
+        if (expenseType === 'personal') {
+            activeSplitMethod = splitMethod;
+            finalSplitters.push({
+                name: payerName,
+                contact: payerContact,
+                amountOwned: 0, 
+                splitValue: 0,
+                hasSettled: true
+            });
+
+            // 2. Add Manual Splitters
+            const namesArr = Array.isArray(splitterNames) ? splitterNames : (splitterNames ? [splitterNames] : []);
+            const contactArr = Array.isArray(splitterContact) ? splitterContact : (splitterContact ? [splitterContact] : []);
+            const valuesArr = Array.isArray(splitValues) ? splitValues : (splitValues ? [splitValues] : []);
+
+            for (let i = 0; i < namesArr.length; i++) {
+                finalSplitters.push({
+                    name: namesArr[i],
+                    contact: contactArr[i],
+                    amountOwned: 0, // Simplified
+                    splitValue: parseFloat(valuesArr[i]) || 0,
+                    hasSettled: false
+                });
+            }
+        } 
+        
+        // ==========================================
+        // SCENARIO B: GROUP SPLIT (THE FIX)
+        // ==========================================
+        else {
+            if (!groupId) return res.redirect('/dashboard/split?error=Group ID required');
+            
+            finalGroupId = groupId;
+            activeSplitMethod = 'equal'; 
+
+            // 1. Fetch Group
+            const groupDoc = await Group.findById(groupId);
+            if (!groupDoc) return res.redirect('/dashboard/split?error=Group not found');
+
+            // 2. Get All Members (Filter logic)
+            // We need a clean list of everyone in the group including me
+            let allMembers = [];
+
+            // Add Payer (Me) details from Session
+            allMembers.push({
+                name: payerName,
+                contact: payerContact,
+                isPayer: true
+            });
+
+            // Add Others from DB
+            groupDoc.members.forEach(m => {
+                // If member ID exists and matches me, skip (don't add me twice)
+                if (m.userId && m.userId.toString() === userid.toString()) return;
+                
+                allMembers.push({
+                    name: m.name,
+                    contact: m.contact || m.email || "N/A",
+                    isPayer: false
+                });
+            });
+
+            // 3. CALCULATE SHARE
+            const totalPeople = allMembers.length;
+            const sharePerPerson = amount / totalPeople;
+        
+
+            // 4. BUILD FINAL SPLITTERS ARRAY
+            finalSplitters = allMembers.map(member => {
+                return {
+                    name: member.name,
+                    contact: member.contact,
+                    amountOwned: sharePerPerson,
+                    splitValue: 1,
+                    hasSettled: member.isPayer 
+                };
+            });
+        }
 
         // Save
         const newExpense = new Expense({
@@ -235,9 +250,10 @@ exports.postsplit = async (req, res, next) => {
             amount,
             date: dateofExpense,
             paidBy: userid,
-            splitMethod,
+            splitMethod: activeSplitMethod,
             splitters: finalSplitters,
-            user: userid
+            user: userid,
+            group: finalGroupId
         });
 
         await newExpense.save();
@@ -249,15 +265,9 @@ exports.postsplit = async (req, res, next) => {
     }
 };
 
-
-
-
 exports.downloadpdf = async (req, res, next) => {
     try {
         const { expenseId } = req.params;
-        // Make sure you have imported PDFDocument (e.g., const PDFDocument = require('pdfkit');)
-        // and your Mongoose models (Expense, User).
-
         const userid = req.user && (req.user._id || req.user.uid);
         if (!userid) return res.redirect('/login');
 
@@ -268,9 +278,8 @@ exports.downloadpdf = async (req, res, next) => {
         const payerName = payer?.name || payer?.displayName || "Payer";
         const payerContact = payer?.email || payer?.contact || "N/A";
 
-        // Update the payer's info in the splitters array if they are the first entry
+        
         if (expense.splitters.length > 0) {
-            // Assuming the first splitter is the payer, as per your original logic
             expense.splitters[0].name = payerName;
             expense.splitters[0].contact = payerContact;
         }
@@ -421,6 +430,9 @@ exports.downloadpdf = async (req, res, next) => {
 
 exports.getsplithistroy = async (req, res, next) => {
     try {
+        const userid = req.user && (req.user._id || req.user.uid);
+        if (!userid) return res.redirect('/login');
+
         const newExpense = await Expense.find({
             $or: [
                 { user: userid },
@@ -428,9 +440,9 @@ exports.getsplithistroy = async (req, res, next) => {
             ]
         }).sort({ date: -1 });
 
-        res.render('store/myspithistory', {
+        res.render('store/mysplithistory', {
             newExpense: newExpense,
-            pageTitle: "History of Splits", // Fixed typo 'Histroy'
+            pageTitle: "History of Splits", 
             stylesheet: "/mysplithistory.css",
             user: req.user
         })
@@ -536,3 +548,41 @@ exports.getgroupshistory = async (req, res, next) => {
         res.redirect('/dashboard');
     }
 }
+
+exports.getGroupDetails = async (req, res, next) => {
+    try {
+        const groupId = req.params.groupId;
+        const userid = req.user._id;
+
+     
+        const group = await Group.findById(groupId);
+        
+        if (!group) {
+            console.log("Group not found");
+            return res.redirect('/dashboard/group-history');
+        }
+        const isMember = group.members.some(m => 
+            m.userId && m.userId.toString() === userid.toString()
+        );
+
+        if (!isMember) {
+            return res.redirect('/dashboard?error=Unauthorized');
+        }
+
+      
+        const groupExpenses = await Expense.find({ group: groupId })
+            .sort({ date: -1 }); 
+    
+        res.render('store/group-detail', {
+            pageTitle: group.name,
+            stylesheet: "/group.css", 
+            user: req.user,
+            group: group,
+            expenses: groupExpenses
+        });
+
+    } catch (err) {
+        console.log("Error loading group details:", err);
+        next(err);
+    }
+};

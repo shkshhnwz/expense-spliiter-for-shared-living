@@ -6,7 +6,7 @@
         <div class="col-12 col-md-9 col-lg-7">
             <h2 class="inter-header text-center mb-4">Add New Expense</h2>
 
-            <form action="/dashboard/split" class="needs-validation" method="post" id="splitForm">
+            <form action="/dashboard/splits" class="needs-validation" method="post" id="splitForm">
 
                 <div class="card mb-3 shadow-sm border-primary">
                     <div class="card-header bg-primary text-white text-center">Expense Context</div>
@@ -66,7 +66,7 @@
                     </div>
                 </div>
 
-                <div id="shared-expense-logic" style="display: none;">
+                <div id="personal-expense-logic" style="display: none;">
                     
                     <div class="card mb-3 shadow-sm">
                         <div class="card-header text-white bg-purple text-center">How to split?</div>
@@ -96,7 +96,26 @@
                         </div>
                     </div>
 
-                </div> <div class="text-center mt-4">
+                </div>
+
+                <div id="group-expense-logic" style="display: none;">
+                    
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-header text-white bg-purple text-center">How to split?</div>
+                        <div class="card-body">
+                            <label for="groupSplitMethod" class="form-label">Select Split Method</label>
+                            <select class="form-select" name="groupSplitMethod" id="groupSplitMethod">
+                                <option value="equal" selected>Split Equally</option>
+                                <option value="amount">By Exact Amounts</option>
+                                <option value="percentage">By Percentage</option>
+                                <option value="shares">By Shares</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-center mt-4">
                     <button type="submit" class="btn btn-primary btn-lg">Save Transaction</button>
                 </div>
             </form>
@@ -115,75 +134,97 @@ document.addEventListener('DOMContentLoaded', () => {
     const payableAmountInput = document.getElementById('payableAmount');
     const splitMethodSelect = document.getElementById('splitMethod');
     
-    // NEW: Toggle Elements
+    // Toggle Elements
     const typePersonal = document.getElementById('typePersonal');
     const typeGroup = document.getElementById('typeGroup');
     const groupSelectionContainer = document.getElementById('group-selection-container');
-    const sharedExpenseLogic = document.getElementById('shared-expense-logic');
+    const personalExpenseLogic = document.getElementById('personal-expense-logic');
+    const groupExpenseLogic = document.getElementById('group-expense-logic');
     const groupSelect = document.getElementById('groupId');
 
-    // --- 1. LOGIC TO HANDLE TOGGLE (Personal vs Group) ---
+    // --- 1. TOGGLE LOGIC ---
     function handleContextChange() {
-        if (typePersonal.checked) {
-            // Hide Group & Shared Logic
+        const isPersonal = typePersonal.checked;
+
+        if (isPersonal) {
+            // SHOW Personal Logic
             groupSelectionContainer.style.display = 'none';
-            sharedExpenseLogic.style.display = 'none';
+            personalExpenseLogic.style.display = 'block';
+            groupExpenseLogic.style.display = 'none';
             
-            // Remove 'required' from Group ID so form submits
-            groupSelect.removeAttribute('required');
+            // DISABLE group inputs
+            groupSelect.disabled = true;
+            toggleInputsInElement(groupExpenseLogic, true);
             
-            // Reset Splitters to 1 (Just me) to keep internal logic clean
-            numSplittersInput.value = 1;
-            renderSplitterFields(); 
+            // ENABLE personal inputs
+            toggleInputsInElement(personalExpenseLogic, false);
+            renderSplitterFields();
+            
         } else {
-            // Show Group & Shared Logic
+            // SHOW Group Logic
             groupSelectionContainer.style.display = 'block';
-            sharedExpenseLogic.style.display = 'block';
+            personalExpenseLogic.style.display = 'none';
+            groupExpenseLogic.style.display = 'block';
             
-            // Make Group ID required
-            groupSelect.setAttribute('required', 'true');
+            // ENABLE group inputs
+            groupSelect.disabled = false;
+            toggleInputsInElement(groupExpenseLogic, false);
+            
+            // DISABLE personal inputs
+            toggleInputsInElement(personalExpenseLogic, true);
         }
     }
 
-    // Listeners for the toggle
-    typePersonal.addEventListener('change', handleContextChange);
-    typeGroup.addEventListener('change', handleContextChange);
+    // Helper to disable/enable all inputs inside a div
+    function toggleInputsInElement(element, shouldDisable) {
+        const inputs = element.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.disabled = shouldDisable;
+        });
+    }
 
-    // Run once on load
-    handleContextChange();
+    // Event Listeners for Radio Buttons
+    const expenseTypes = document.querySelectorAll('input[name="expenseType"]');
+    expenseTypes.forEach(radio => {
+        radio.addEventListener('change', handleContextChange);
+    });
 
-    // --- 2. EXISTING SPLIT LOGIC (Slightly Modified) ---
+    // --- 2. SPLITTER GENERATION LOGIC (PERSONAL ONLY) ---
 
     const generateSplitterRow = (index) => {
-        const isPayer = index === 0;
-        const title = isPayer ? `Splitter ${index + 1} (You)` : `Splitter ${index + 1}`;
-        const namePlaceholder = isPayer ? "Your Name" : "Name";
-        const readonlyAttr = isPayer ? 'readonly' : '';
-        const nameValue = isPayer ? "You" : "";
-
+        const title = `Splitter ${index + 1}`;
+        
         return `
             <div class="row g-2 mb-3 splitter-row">
-                <div class="col-12"><p class="mb-1 fw-bold">${title}</p></div>
+                <div class="col-12"><p class="mb-1 fw-bold small text-secondary">${title}</p></div>
                 <div class="col-md-5">
-                    <input type="text" class="form-control" name="splitterNames[${index}]" placeholder="${namePlaceholder}" value="${nameValue}" ${readonlyAttr} required>
+                    <input type="text" class="form-control" name="splitterNames" placeholder="Name" required>
                 </div>
-                ${isPayer 
-                    ? `<div class="col-md-4"></div>` 
-                    : `<div class="col-md-4"><input type="text" class="form-control" name="splitterContact[${index}]" placeholder="Contact" required></div>`
-                }
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="splitterContact" placeholder="Email/Phone" required>
+                </div>
                 <div class="col-md-3">
-                    <input type="number" step="0.01" class="form-control split-value-input" name="splitValues[${index}]" placeholder="0.00" required>
+                    <input type="number" step="0.01" class="form-control split-value-input" name="splitValues" placeholder="0.00" required>
                 </div>
             </div>
         `;
     };
 
     const renderSplitterFields = () => {
-        let targetCount = parseInt(numSplittersInput.value) || 1;
-        if (targetCount < 1) targetCount = 1;
+        // Only run this if we are in Personal mode
+        if (!typePersonal.checked) return;
+
+        let count = parseInt(numSplittersInput.value) || 1;
+        let rowsToGenerate = count - 1; 
 
         container.innerHTML = ''; 
-        for (let i = 0; i < targetCount; i++) {
+
+        if (rowsToGenerate < 1) {
+            container.innerHTML = '<p class="text-muted small text-center mt-2">Just you? Select "Group Split" to add more people.</p>';
+            return;
+        }
+
+        for (let i = 0; i < rowsToGenerate; i++) {
             container.insertAdjacentHTML('beforeend', generateSplitterRow(i));
         }
         updateSplitValues();
@@ -194,10 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const amount = parseFloat(payableAmountInput.value) || 0;
         const method = splitMethodSelect.value;
         const valueInputs = container.querySelectorAll('.split-value-input');
-        const count = valueInputs.length;
+        
+        const totalPeople = valueInputs.length + 1;
 
-        if (method === 'equal' && amount > 0 && count > 0) {
-            const equalShare = amount / count;
+        if (method === 'equal' && amount > 0 && totalPeople > 0) {
+            const equalShare = amount / totalPeople;
             valueInputs.forEach(input => input.value = equalShare.toFixed(2));
         }
     };
@@ -207,10 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const valueInputs = container.querySelectorAll('.split-value-input');
         valueInputs.forEach(input => {
             input.readOnly = (method === 'equal');
+            input.placeholder = (method === 'percentage') ? '%' : '0.00';
         });
     };
 
-    // Listeners
+    // Listeners for Personal Split
     numSplittersInput.addEventListener('change', renderSplitterFields);
     numSplittersInput.addEventListener('keyup', renderSplitterFields);
     payableAmountInput.addEventListener('change', updateSplitValues);
@@ -220,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSplitValues();
     });
 
-    // Init
-    renderSplitterFields();
+    // Run once on load
+    handleContextChange();
 });
 </script>
