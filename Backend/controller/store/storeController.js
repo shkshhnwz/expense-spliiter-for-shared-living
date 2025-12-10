@@ -7,32 +7,95 @@ const { name } = require('ejs');
 
 exports.getdashboard = async (req, res, next) => {
     const userid = req.user && req.user._id;
-    if (!userid) {
-        return res.redirect('/login');
-    }
+    const userEmail = req.user.email;
+    if (!userid) return res.redirect('/login');
+
     try {
         const userDetails = await User.findById(userid);
-        if (!userDetails) {
-            res.redirect('/login');
-        }
-        const totalIncomeResult = await Income.aggregate([
+
+
+        const incomeAgg = await Income.aggregate([
             { $match: { user: userid } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const totalIncome = incomeAgg.length > 0 ? incomeAgg[0].total : 0;
+
+
+        const receivablesAgg = await Expense.aggregate([
+            { $match: { paidBy: userid } },
+            { $unwind: "$splitters" },
+            { $match: { "splitters.hasSettled": false } },
+
+            { $match: { "splitters.userId": { $ne: userid } } },
+            { $group: { _id: null, total: { $sum: "$splitters.amountOwned" } } }
+        ]);
+        const totalReceivables = receivablesAgg.length > 0 ? receivablesAgg[0].total : 0;
+
+        const payablesAgg = await Expense.aggregate([
+            { $match: { paidBy: { $ne: userid } } },
+            { $unwind: "$splitters" },
+
             {
-                $group: {
-                    _id: null,
-                    totalamount: { $sum: "$amount" }
+                $match: {
+                    $or: [{ "splitters.userId": userid }, { "splitters.contact": userEmail }],
+                    "splitters.hasSettled": false
+                }
+            },
+            { $group: { _id: null, total: { $sum: "$splitters.amountOwned" }, count: { $sum: 1 } } }
+        ]);
+        const totalPayables = payablesAgg.length > 0 ? payablesAgg[0].total : 0;
+        const pendingBillsCount = payablesAgg.length > 0 ? payablesAgg[0].count : 0;
+
+        const categoryStats = await Expense.aggregate([
+            { $match: { $or: [{ paidBy: userid }, { "splitters.userId": userid }] } },
+            { $group: { _id: "$category", total: { $sum: "$amount" } } }
+        ]);
+
+        const chartLabels = categoryStats.map(stat => stat._id || 'General');
+        const chartData = categoryStats.map(stat => stat.total);
+
+        const pendingBillsList = await Expense.aggregate([
+            { $match: { paidBy: { $ne: userid } } },
+            { $unwind: "$splitters" },
+            {
+                $match: {
+                    $or: [{ "splitters.userId": userid }, { "splitters.contact": userEmail }],
+                    "splitters.hasSettled": false
+                }
+            },
+            {
+                $project: {
+                    description: 1,
+                    date: 1,
+                    amount: "$splitters.amountOwned"
                 }
             }
-        ])
-        const totalIncome = totalIncomeResult.length > 0 ? totalIncomeResult[0].totalamount : 0;
+        ]);
+
+
+        const formattedBills = pendingBillsList.map(b => ({
+            desc: b.description,
+            date: b.date,
+            amount: b.amount
+        }));
+
         res.render('store/dashboard', {
             pageTitle: "Home Page",
             stylesheet: "/dashboard.css",
+            user: userDetails,
+
             TotalIncome: totalIncome,
-            user: userDetails
-        })
+            Receivables: totalReceivables.toFixed(2),
+            Payables: totalPayables.toFixed(2),
+            PendingBills: pendingBillsCount,
+            pendingBillsList: formattedBills,
+
+            chartLabels: JSON.stringify(chartLabels),
+            chartData: JSON.stringify(chartData)
+        });
+
     } catch (err) {
-        console.log('Error while displaying Total Income');
+        console.log('Error loading dashboard', err);
         next(err);
     }
 }
@@ -115,7 +178,7 @@ exports.getsplit = async (req, res, next) => {
             return res.redirect('/login');
         }
 
-      const userGroups = await Group.find({ "members.userId": userid });
+        const userGroups = await Group.find({ "members.userId": userid });
 
         res.render('store/split', {
             pageTitle: "Split a bill",
@@ -157,7 +220,7 @@ exports.postsplit = async (req, res, next) => {
 
         const payerName = req.user.name || req.user.displayName || "Me";
         const payerContact = req.user.email || req.user.contact || "N/A";
-        
+
         let finalSplitters = [];
         let finalGroupId = null;
         let activeSplitMethod = splitMethod || 'equal';
@@ -170,7 +233,7 @@ exports.postsplit = async (req, res, next) => {
             finalSplitters.push({
                 name: payerName,
                 contact: payerContact,
-                amountOwned: 0, 
+                amountOwned: 0,
                 splitValue: 0,
                 hasSettled: true
             });
@@ -189,16 +252,16 @@ exports.postsplit = async (req, res, next) => {
                     hasSettled: false
                 });
             }
-        } 
-        
+        }
+
         // ==========================================
         // SCENARIO B: GROUP SPLIT (THE FIX)
         // ==========================================
         else {
             if (!groupId) return res.redirect('/dashboard/split?error=Group ID required');
-            
+
             finalGroupId = groupId;
-            activeSplitMethod = 'equal'; 
+            activeSplitMethod = 'equal';
 
             // 1. Fetch Group
             const groupDoc = await Group.findById(groupId);
@@ -219,7 +282,7 @@ exports.postsplit = async (req, res, next) => {
             groupDoc.members.forEach(m => {
                 // If member ID exists and matches me, skip (don't add me twice)
                 if (m.userId && m.userId.toString() === userid.toString()) return;
-                
+
                 allMembers.push({
                     name: m.name,
                     contact: m.contact || m.email || "N/A",
@@ -230,7 +293,7 @@ exports.postsplit = async (req, res, next) => {
             // 3. CALCULATE SHARE
             const totalPeople = allMembers.length;
             const sharePerPerson = amount / totalPeople;
-        
+
 
             // 4. BUILD FINAL SPLITTERS ARRAY
             finalSplitters = allMembers.map(member => {
@@ -239,7 +302,7 @@ exports.postsplit = async (req, res, next) => {
                     contact: member.contact,
                     amountOwned: sharePerPerson,
                     splitValue: 1,
-                    hasSettled: member.isPayer 
+                    hasSettled: member.isPayer
                 };
             });
         }
@@ -247,6 +310,7 @@ exports.postsplit = async (req, res, next) => {
         // Save
         const newExpense = new Expense({
             description: splitName,
+            category: expenseType || 'General',
             amount,
             date: dateofExpense,
             paidBy: userid,
@@ -278,7 +342,7 @@ exports.downloadpdf = async (req, res, next) => {
         const payerName = payer?.name || payer?.displayName || "Payer";
         const payerContact = payer?.email || payer?.contact || "N/A";
 
-        
+
         if (expense.splitters.length > 0) {
             expense.splitters[0].name = payerName;
             expense.splitters[0].contact = payerContact;
@@ -442,7 +506,7 @@ exports.getsplithistroy = async (req, res, next) => {
 
         res.render('store/mysplithistory', {
             newExpense: newExpense,
-            pageTitle: "History of Splits", 
+            pageTitle: "History of Splits",
             stylesheet: "/mysplithistory.css",
             user: req.user
         })
@@ -452,95 +516,95 @@ exports.getsplithistroy = async (req, res, next) => {
     }
 }
 
-    exports.getgroup = (req, res, next) => {
-        try {
-            const userid = req.user && (req.user._id || req.user.uid);
-            if (!userid) return res.redirect('/login');
+exports.getgroup = (req, res, next) => {
+    try {
+        const userid = req.user && (req.user._id || req.user.uid);
+        if (!userid) return res.redirect('/login');
 
-            res.render('store/group', {
-                pageTitle: "Make Group",
-                stylesheet: "/group.css",
-                user: req.user
-            })
+        res.render('store/group', {
+            pageTitle: "Make Group",
+            stylesheet: "/group.css",
+            user: req.user
+        })
 
-        } catch (err) {
-            console.log("Error is cought while getting group home page", err);
-        }
+    } catch (err) {
+        console.log("Error is cought while getting group home page", err);
     }
+}
 
 
-    exports.postgroup = async (req, res, next) => {
-        try {
-            // 1. Auth Check
-            const userid = req.user && (req.user._id || req.user.uid);
-            if (!userid) {
-                return res.redirect('/login');
-            }
-
-            const {
-                name,
-                grouptype,
-                budget,
-                members
-            } = req.body;
-
-            const initialMembers = [];
-            initialMembers.push({
-                name: req.user.name || req.user.displayName || "Admin",
-                contact: req.user.email,
-                userId: userid
-            });
-
-
-            if (members && Array.isArray(members)) {
-                members.forEach(member => {
-
-                    if (member.name) {
-                        initialMembers.push({
-                            name: member.name,
-                            contact: member.contact,
-                            userId: null
-                        });
-                    }
-                });
-            }
-
-
-            const group = new Group({
-                name: name,
-                type: grouptype,
-                budget: budget || 0,
-                members: initialMembers,
-                createdBy: userid
-            });
-
-
-            await group.save();
-            console.log("Group Created Successfully");
-
-
-            res.redirect('/dashboard');
-
-        } catch (err) {
-            console.log("Error caught while creating group:", err);
-
-            res.redirect('/dashboard?error=GroupCreationMsg');
+exports.postgroup = async (req, res, next) => {
+    try {
+        // 1. Auth Check
+        const userid = req.user && (req.user._id || req.user.uid);
+        if (!userid) {
+            return res.redirect('/login');
         }
+
+        const {
+            name,
+            grouptype,
+            budget,
+            members
+        } = req.body;
+
+        const initialMembers = [];
+        initialMembers.push({
+            name: req.user.name || req.user.displayName || "Admin",
+            contact: req.user.email,
+            userId: userid
+        });
+
+
+        if (members && Array.isArray(members)) {
+            members.forEach(member => {
+
+                if (member.name) {
+                    initialMembers.push({
+                        name: member.name,
+                        contact: member.contact,
+                        userId: null
+                    });
+                }
+            });
+        }
+
+
+        const group = new Group({
+            name: name,
+            type: grouptype,
+            budget: budget || 0,
+            members: initialMembers,
+            createdBy: userid
+        });
+
+
+        await group.save();
+        console.log("Group Created Successfully");
+
+
+        res.redirect('/dashboard');
+
+    } catch (err) {
+        console.log("Error caught while creating group:", err);
+
+        res.redirect('/dashboard?error=GroupCreationMsg');
     }
+}
 
 exports.getgroupshistory = async (req, res, next) => {
     try {
-        
+
         const userid = req.user && (req.user._id || req.user.uid);
         if (!userid) return res.redirect('/login');
         const groups = await Group.find({
             "members.userId": userid
-        }).sort({ createdAt: -1 });       
-        res.render('store/group-history', { 
+        }).sort({ createdAt: -1 });
+        res.render('store/group-history', {
             pageTitle: "Your Groups",
             stylesheet: "/group.css",
             user: req.user,
-            groups: groups 
+            groups: groups
         });
 
     } catch (err) {
@@ -554,14 +618,14 @@ exports.getGroupDetails = async (req, res, next) => {
         const groupId = req.params.groupId;
         const userid = req.user._id;
 
-     
+
         const group = await Group.findById(groupId);
-        
+
         if (!group) {
             console.log("Group not found");
             return res.redirect('/dashboard/group-history');
         }
-        const isMember = group.members.some(m => 
+        const isMember = group.members.some(m =>
             m.userId && m.userId.toString() === userid.toString()
         );
 
@@ -569,13 +633,13 @@ exports.getGroupDetails = async (req, res, next) => {
             return res.redirect('/dashboard?error=Unauthorized');
         }
 
-      
+
         const groupExpenses = await Expense.find({ group: groupId })
-            .sort({ date: -1 }); 
-    
+            .sort({ date: -1 });
+
         res.render('store/group-detail', {
             pageTitle: group.name,
-            stylesheet: "/group.css", 
+            stylesheet: "/group.css",
             user: req.user,
             group: group,
             expenses: groupExpenses

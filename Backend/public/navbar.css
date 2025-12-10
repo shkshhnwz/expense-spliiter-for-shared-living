@@ -1,0 +1,90 @@
+/* --- Navbar Container --- */
+.navbar {
+    background-color: #8754ff !important; /* Your Brand Color */
+    padding: 1rem 0; /* More breathing room */
+    box-shadow: 0 4px 15px rgba(135, 84, 255, 0.3); /* Soft purple shadow */
+    transition: all 0.3s ease;
+}
+
+/* --- Brand Logo (ExpenseCare) --- */
+.navbar-brand {
+    color: #fff !important;
+    font-size: 1.6rem;
+    letter-spacing: 0.5px;
+    /* Transition for smooth animation */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), text-shadow 0.3s ease;
+}
+
+.navbar-brand:hover {
+    transform: scale(1.05); /* Slightly grows */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.6); /* Glow effect */
+}
+
+/* --- Navigation Links (Home, Groups, etc.) --- */
+.navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-size: 1rem;
+    margin: 0 5px;
+    padding: 8px 16px;
+    border-radius: 50px; /* Pill shape */
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* Hover Effect for Links */
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent white bg */
+    transform: translateY(-2px); /* Lifts up slightly */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* --- The "More" Button --- */
+.btn-outline-light {
+    border-width: 2px;
+    border-radius: 50px; /* Rounded pill */
+    padding: 6px 20px;
+    font-weight: 700;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+/* Hover Effect for Button */
+.btn-outline-light:hover {
+    background-color: #fff;
+    color: #8754ff; /* Text becomes purple */
+    border-color: #fff;
+    transform: scale(1.05) rotate(0deg);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5); /* Strong white glow */
+}
+
+/* Animate the hamburger icon inside the More button on hover */
+.btn-outline-light:hover::after {
+    /* (Optional) If you wanted to animate the text specifically */
+}
+
+/* --- Mobile Toggler (Hamburger Menu) --- */
+.navbar-toggler {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none; /* Remove default bootstrap blue glow */
+}
+
+.navbar-toggler:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: rotate(90deg); /* Rotates 90 degrees on hover */
+    border-color: #fff;
+}
+
+/* Ensure the lines inside are white */
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
