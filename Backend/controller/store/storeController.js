@@ -3,24 +3,21 @@ const Income = require('../../model/setincome');
 const Expense = require('../../model/splitmodel');
 const PDFDocument = require('pdfkit');
 const Group = require('../../model/Group');
-const { name } = require('ejs');
+const mongoose = require('mongoose');
+const { equal } = require('assert');
+
 
 exports.getdashboard = async (req, res, next) => {
-    const userid = req.user && req.user._id;
+    if (!req.user || !req.user._id) return res.redirect('/login');
+    const userid = new mongoose.Types.ObjectId(req.user._id);
     const userEmail = req.user.email;
-    if (!userid) return res.redirect('/login');
-
     try {
         const userDetails = await User.findById(userid);
-
-
         const incomeAgg = await Income.aggregate([
             { $match: { user: userid } },
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
         const totalIncome = incomeAgg.length > 0 ? incomeAgg[0].total : 0;
-
-
         const receivablesAgg = await Expense.aggregate([
             { $match: { paidBy: userid } },
             { $unwind: "$splitters" },
@@ -30,11 +27,9 @@ exports.getdashboard = async (req, res, next) => {
             { $group: { _id: null, total: { $sum: "$splitters.amountOwned" } } }
         ]);
         const totalReceivables = receivablesAgg.length > 0 ? receivablesAgg[0].total : 0;
-
         const payablesAgg = await Expense.aggregate([
             { $match: { paidBy: { $ne: userid } } },
             { $unwind: "$splitters" },
-
             {
                 $match: {
                     $or: [{ "splitters.userId": userid }, { "splitters.contact": userEmail }],
@@ -53,7 +48,6 @@ exports.getdashboard = async (req, res, next) => {
 
         const chartLabels = categoryStats.map(stat => stat._id || 'General');
         const chartData = categoryStats.map(stat => stat.total);
-
         const pendingBillsList = await Expense.aggregate([
             { $match: { paidBy: { $ne: userid } } },
             { $unwind: "$splitters" },
@@ -213,7 +207,6 @@ exports.postsplit = async (req, res, next) => {
 
         const amount = parseFloat(payableAmount);
 
-        // 1. Basic Validation
         if (!splitName || isNaN(amount) || amount <= 0 || !dateofExpense) {
             return res.redirect('/dashboard/split?error=Invalid data');
         }
@@ -225,11 +218,12 @@ exports.postsplit = async (req, res, next) => {
         let finalGroupId = null;
         let activeSplitMethod = splitMethod || 'equal';
 
-        // ==========================================
-        // SCENARIO A: PERSONAL SPLIT
-        // ==========================================
         if (expenseType === 'personal') {
-            activeSplitMethod = splitMethod;
+            activeSplitMethod = splitMethod || 'equal';
+            const namesArr = Array.isArray(splitterNames) ? splitterNames : (splitterNames ? [splitterNames] : []);
+            const contactArr = Array.isArray(splitterContact) ? splitterContact : (splitterContact ? [splitterContact] : []);
+            const valuesArr = Array.isArray(splitValues) ? splitValues : (splitValues ? [splitValues] : []);
+
             finalSplitters.push({
                 name: payerName,
                 contact: payerContact,
@@ -238,26 +232,29 @@ exports.postsplit = async (req, res, next) => {
                 hasSettled: true
             });
 
-            // 2. Add Manual Splitters
-            const namesArr = Array.isArray(splitterNames) ? splitterNames : (splitterNames ? [splitterNames] : []);
-            const contactArr = Array.isArray(splitterContact) ? splitterContact : (splitterContact ? [splitterContact] : []);
-            const valuesArr = Array.isArray(splitValues) ? splitValues : (splitValues ? [splitValues] : []);
-
-            for (let i = 0; i < namesArr.length; i++) {
+       for (let i = 0; i < namesArr.length; i++) {
+                let calculatedShare = 0;
+                if (activeSplitMethod === 'equal') {
+                    const totalPeople = namesArr.length + 1; 
+                    calculatedShare = amount / totalPeople;
+                } 
+                else if (activeSplitMethod === 'amount') {
+                    calculatedShare = parseFloat(valuesArr[i]) || 0;
+                } 
+                else if (activeSplitMethod === 'percentage') {
+                    const percent = parseFloat(valuesArr[i]) || 0;
+                    calculatedShare = (percent / 100) * amount;
+                }
                 finalSplitters.push({
                     name: namesArr[i],
                     contact: contactArr[i],
-                    amountOwned: 0, // Simplified
+                    amountOwned: calculatedShare,
                     splitValue: parseFloat(valuesArr[i]) || 0,
                     hasSettled: false
                 });
-            }
         }
 
-        // ==========================================
-        // SCENARIO B: GROUP SPLIT (THE FIX)
-        // ==========================================
-        else {
+    }else {
             if (!groupId) return res.redirect('/dashboard/split?error=Group ID required');
 
             finalGroupId = groupId;
@@ -267,37 +264,33 @@ exports.postsplit = async (req, res, next) => {
             const groupDoc = await Group.findById(groupId);
             if (!groupDoc) return res.redirect('/dashboard/split?error=Group not found');
 
-            // 2. Get All Members (Filter logic)
-            // We need a clean list of everyone in the group including me
+           
             let allMembers = [];
 
-            // Add Payer (Me) details from Session
             allMembers.push({
                 name: payerName,
                 contact: payerContact,
                 isPayer: true
             });
 
-            // Add Others from DB
             groupDoc.members.forEach(m => {
-                // If member ID exists and matches me, skip (don't add me twice)
+             
                 if (m.userId && m.userId.toString() === userid.toString()) return;
 
                 allMembers.push({
                     name: m.name,
                     contact: m.contact || m.email || "N/A",
+                    userId: m.userId,
                     isPayer: false
                 });
             });
-
-            // 3. CALCULATE SHARE
             const totalPeople = allMembers.length;
             const sharePerPerson = amount / totalPeople;
 
 
-            // 4. BUILD FINAL SPLITTERS ARRAY
             finalSplitters = allMembers.map(member => {
                 return {
+                    userId: member.userId,
                     name: member.name,
                     contact: member.contact,
                     amountOwned: sharePerPerson,
@@ -307,7 +300,6 @@ exports.postsplit = async (req, res, next) => {
             });
         }
 
-        // Save
         const newExpense = new Expense({
             description: splitName,
             category: expenseType || 'General',
@@ -355,36 +347,29 @@ exports.downloadpdf = async (req, res, next) => {
         const doc = new PDFDocument({ margin: 30 });
         doc.pipe(res);
 
-        // --- Layout Constants ---
-        const P = 30; // Margin
-        const W = doc.page.width - P * 2; // Usable width
+        const P = 30; 
+        const W = doc.page.width - P * 2; 
         const X_START = P;
-        const LINE_HEIGHT_GUESS = 18; // Standard vertical space for a single line
+        const LINE_HEIGHT_GUESS = 18; 
 
-        // 1. Title
         doc.fontSize(24).font('Helvetica-Bold').text(`Expense Split: ${expense.description}`, { align: "center" });
-        doc.moveDown(); // Space after title
+        doc.moveDown(); 
 
-        // 2. Metadata (Using explicit X/Y for reliable alignment)
         doc.fontSize(12).font('Helvetica');
-        const metaY = doc.y; // Capture the starting Y position
+        const metaY = doc.y; 
 
-        // Left Column
         doc.text(`Date: ${new Date(expense.date).toLocaleDateString()}`, X_START, metaY);
         doc.text(`Paid By: ${payerName}`, X_START, metaY + LINE_HEIGHT_GUESS);
 
-        // Right Column
-        const rightColX = P + W * 0.5; // Start halfway across
-        const rightColW = W * 0.5; // Width for right column
+        const rightColX = P + W * 0.5;
+        const rightColW = W * 0.5; 
 
         doc.text(`Total Amount: Rs. ${expense.amount.toFixed(2)}`, rightColX, metaY, { align: "right", width: rightColW });
         doc.text(`Split Method: ${expense.splitMethod}`, rightColX, metaY + LINE_HEIGHT_GUESS, { align: "right", width: rightColW });
 
-        // Advance cursor past the metadata block
         doc.y = metaY + LINE_HEIGHT_GUESS * 2 + 10;
         doc.moveDown();
 
-        // 3. Table Structure Definition
         const cols = [
             { title: "Name", x: P, w: W * 0.25 },
             { title: "Contact", x: P + W * 0.25, w: W * 0.30 },
@@ -392,35 +377,30 @@ exports.downloadpdf = async (req, res, next) => {
             { title: "Amount Owed", x: P + W * 0.75, w: W * 0.25 }
         ];
 
-        // Function to draw the table header
         const drawHeader = (doc, cols, P, W) => {
             doc.font("Helvetica-Bold").fontSize(11);
             const headerY = doc.y;
             cols.forEach(c => doc.text(c.title, c.x, headerY, { width: c.w }));
             doc.moveDown(0.5);
-            doc.moveTo(P, doc.y).lineTo(doc.page.width - P, doc.y).stroke(); // Separator line
+            doc.moveTo(P, doc.y).lineTo(doc.page.width - P, doc.y).stroke();
             doc.font("Helvetica").fontSize(10);
-            doc.moveDown(0.2); // Small space before first row
+            doc.moveDown(0.2);
         };
 
-        // Initial Header
         drawHeader(doc, cols, P, W);
 
-        // 4. Rows 
         const ROW_PADDING = 6;
-        const bottomMargin = 60; // Space for footer
+        const bottomMargin = 60;
 
         for (let i = 0; i < expense.splitters.length; i++) {
             const s = expense.splitters[i];
 
-            // Check for page break
-            const estRowHeight = 40; // Conservative estimate for max row height
+            const estRowHeight = 40; 
             if (doc.y > doc.page.height - bottomMargin - estRowHeight) {
                 doc.addPage();
-                drawHeader(doc, cols, P, W); // Redraw header on new page
+                drawHeader(doc, cols, P, W); 
             }
 
-            // Compose display values
             const sv = !isNaN(parseFloat(s.splitValue))
                 ? (expense.splitMethod === "amount"
                     ? `Rs. ${parseFloat(s.splitValue).toFixed(2)}`
@@ -492,7 +472,7 @@ exports.downloadpdf = async (req, res, next) => {
 };
 
 
-exports.getsplithistroy = async (req, res, next) => {
+exports.getsplithistory = async (req, res, next) => {
     try {
         const userid = req.user && (req.user._id || req.user.uid);
         if (!userid) return res.redirect('/login');
@@ -545,30 +525,39 @@ exports.postgroup = async (req, res, next) => {
             name,
             grouptype,
             budget,
-            members
+            members // Array of member objects from your form
         } = req.body;
 
         const initialMembers = [];
+
+        // 2. Add the Admin (You)
         initialMembers.push({
             name: req.user.name || req.user.displayName || "Admin",
             contact: req.user.email,
-            userId: userid
+            userId: userid 
         });
 
-
+        
         if (members && Array.isArray(members)) {
-            members.forEach(member => {
+            
+            for (const member of members) {
+                if (member.contact) {
+                    let foundId = null;
 
-                if (member.name) {
+                    const existingUser = await User.findOne({ email: member.contact });
+                    
+                    if (existingUser) {
+                        foundId = existingUser._id;
+                    }
+
                     initialMembers.push({
                         name: member.name,
                         contact: member.contact,
-                        userId: null
+                        userId: foundId 
                     });
                 }
-            });
+            }
         }
-
 
         const group = new Group({
             name: name,
@@ -578,16 +567,14 @@ exports.postgroup = async (req, res, next) => {
             createdBy: userid
         });
 
-
         await group.save();
         console.log("Group Created Successfully");
-
-
-        res.redirect('/dashboard');
+        
+        // Redirect to history so you can see the new group immediately
+        res.redirect('/dashboard/group-history');
 
     } catch (err) {
         console.log("Error caught while creating group:", err);
-
         res.redirect('/dashboard?error=GroupCreationMsg');
     }
 }
@@ -647,6 +634,36 @@ exports.getGroupDetails = async (req, res, next) => {
 
     } catch (err) {
         console.log("Error loading group details:", err);
+        next(err);
+    }
+};
+
+exports.postDeleteExpense = async (req, res, next) => {
+    const userid = req.user && (req.user._id || req.user.uid);
+    const expenseId = req.body.expenseId; 
+
+    if (!userid) return res.redirect('/login');
+
+    try {
+        const expense = await Expense.findById(expenseId);
+
+        if (!expense) {
+            console.log("Expense not found.");
+            return res.redirect('/dashboard/mysplithistory');
+        }
+
+        if (expense.paidBy.toString() !== userid.toString()) {
+            console.log("Unauthorized delete attempt.");
+            return res.redirect('/dashboard/mysplithistory?error=Unauthorized');
+        }
+
+        await Expense.findByIdAndDelete(expenseId);
+        console.log("Expense deleted successfully.");
+
+        res.redirect('/dashboard/mysplithistory');
+
+    } catch (err) {
+        console.log("Error deleting expense:", err);
         next(err);
     }
 };
