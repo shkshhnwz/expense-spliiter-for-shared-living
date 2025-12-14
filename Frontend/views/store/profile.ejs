@@ -1,0 +1,118 @@
+<%- include('../partials/mainhead') %>
+<%- include('../partials/navbar') %>
+
+<div class="container py-4 py-sm-5 mobile-center">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-9">
+
+      <div class="row g-3">
+        <!-- Avatar / Actions -->
+        <div class="col-12 col-md-4">
+          <div class="card shadow-sm text-center">
+            <div class="card-body">
+              <% 
+                const displayName = user && (user.name || user.displayName || 'User');
+                const initials = (displayName.split(' ').map(n => n[0]).join('').slice(0,2) || 'U').toUpperCase();
+              %>
+
+              <% if (user && user.picture) { %>
+                <img src="<%= user.picture %>" alt="Avatar" class="rounded-circle mb-3" style="width:120px;height:120px;object-fit:cover;">
+              <% } else { %>
+                <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-3" 
+                     style="width:120px;height:120px;font-size:32px;">
+                  <%= initials %>
+                </div>
+              <% } %>
+
+              <h5 class="mb-1"><%= displayName %></h5>
+              <p class="text-muted small mb-3"><%= user && user.email ? user.email : 'No email provided' %></p>
+
+              <div class="d-grid gap-2">
+                <a href="/forgotpassword" class="btn btn-outline-secondary btn-sm">Change Password</a>
+                <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Details and Activity -->
+        <div class="col-12 col-md-8">
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-purple text-white">
+              <strong>Profile Details</strong>
+            </div>
+            <div class="card-body">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <small class="text-muted">Full name</small>
+                    <div><strong><%= displayName %></strong></div>
+                  </div>
+                </li>
+
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <small class="text-muted">Email</small>
+                    <div><%= user && user.email ? user.email : '—' %></div>
+                  </div>
+                </li>
+
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <small class="text-muted">Contact</small>
+                    <div><%= user && user.phone ? user.phone : (user && user.contact ? user.contact : '—') %></div>
+                  </div>
+                </li>
+
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <small class="text-muted">Member since</small>
+                    <div>
+                      <% if (user && user.createdAt) { %>
+                        <%= new Date(user.createdAt).toLocaleDateString('en-IN', { year:'numeric', month:'short', day:'numeric' }) %>
+                      <% } else { %>
+                        —
+                      <% } %>
+                    </div>
+                  </div>
+                </li>
+
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <small class="text-muted">Groups</small>
+                    <div>
+                      <span class="badge bg-primary">
+                        <%= typeof groups !== 'undefined' ? groups.length : (typeof groupsCount !== 'undefined' ? groupsCount : 0) %>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-end">
+                    <a href="/dashboard/group-history" class="btn btn-sm btn-outline-primary">View Groups</a>
+                  </div>
+                </li>
+
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <small class="text-muted">Total Expenses</small>
+                    <div>
+                      <span class="badge bg-success">
+                        <%= typeof expensesCount !== 'undefined' ? expensesCount : (typeof expenses !== 'undefined' ? expenses.length : 0) %>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-end">
+                    <a href="/dashboard/splits" class="btn btn-sm btn-outline-success">View Expenses</a>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+

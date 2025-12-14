@@ -3,6 +3,7 @@ const storerouter = express.Router();
 const storeController = require('../controller/store/storeController');
 
 storerouter.get('/', storeController.getdashboard);
+storerouter.get('/profile',storeController.getprofile);
 storerouter.get('/setincome', storeController.getsetincome);
 storerouter.post('/setincome', storeController.postsetincome);
 storerouter.get('/splits', storeController.getsplit);
@@ -10,6 +11,7 @@ storerouter.post('/splits', storeController.postsplit);
 storerouter.get('/mysplithistory', storeController.getsplithistory);
 storerouter.get('/download/expense/:expenseId', storeController.downloadpdf);
 storerouter.post('/delete-expense', storeController.postDeleteExpense);
+storerouter.post('/delete-group', storeController.postDeleteGroup);
 storerouter.get('/group', storeController.getgroup);
 storerouter.post('/group', storeController.postgroup);
 storerouter.get('/group/:groupId', storeController.getGroupDetails);

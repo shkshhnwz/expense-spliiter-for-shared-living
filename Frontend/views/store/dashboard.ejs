@@ -1,192 +1,206 @@
 <%- include('../partials/mainhead') %>
-<%- include('../partials/navbar') %>
-<div class="container mt-5 mb-5">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="text-dark fw-bold">Dashboard</h2>
-            <p class="text-muted">Welcome back, <%= user.name || 'User' %>!</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="/dashboard/setincome" class="btn btn-primary shadow-sm"><i class="fas fa-plus"></i> Add Income</a>
-            <a href="/dashboard/splits" class="btn btn-dark shadow-sm"><i class="fas fa-file-invoice-dollar"></i> Split Expense</a>
-        </div>
-    </div>
+    <%- include('../partials/navbar') %>
+        <div class="container mt-5 mb-5">
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-3">
-            <div class="card stat-card h-100 border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="icon-box bg-success-light text-success mb-3">
-                        <i class="fas fa-wallet fa-2x"></i>
-                    </div>
-                    <h5 class="text-muted mb-2">Total Income</h5>
-                    <h3 class="fw-bold text-dark">₹<%= TotalIncome %></h3>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-dark fw-bold">Dashboard</h2>
+                    <p class="text-muted">Welcome back, <%= user.name || 'User' %>!</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/dashboard/setincome" class="btn btn-primary shadow-sm"><i class="fas fa-plus"></i> Add
+                        Income</a>
+                    <a href="/dashboard/splits" class="btn btn-dark shadow-sm"><i
+                            class="fas fa-file-invoice-dollar"></i> Split Expense</a>
                 </div>
             </div>
-        </div>
 
-        <div class="col-md-3">
-            <div class="card stat-card h-100 border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="icon-box bg-info-light text-info mb-3">
-                        <i class="fas fa-hand-holding-usd fa-2x"></i>
-                    </div>
-                    <h5 class="text-muted mb-2">Receivables</h5>
-                    <h3 class="fw-bold text-success">₹<%= Receivables %></h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card stat-card h-100 border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="icon-box bg-warning-light text-warning mb-3">
-                        <i class="fas fa-file-invoice fa-2x"></i>
-                    </div>
-                    <h5 class="text-muted mb-2">Payables</h5>
-                    <h3 class="fw-bold text-danger">₹<%= Payables %></h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card stat-card h-100 border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="icon-box bg-danger-light text-danger mb-3">
-                        <i class="fas fa-bell fa-2x"></i>
-                    </div>
-                    <h5 class="text-muted mb-2">Pending Bills</h5>
-                    <h3 class="fw-bold text-dark"><%= PendingBills %></h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-5">
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm border-0 h-100 p-3">
-                <h5 class="card-title fw-bold mb-4">Expense Breakdown</h5>
-                <div class="chart-container" style="position: relative; height:300px; width:100%">
-                    <canvas id="categoryChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm border-0 h-100 p-3">
-                <h5 class="card-title fw-bold mb-4">Cash Flow</h5>
-                <div class="chart-container" style="position: relative; height:300px; width:100%">
-                    <canvas id="overviewChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold">Bills to be Paid</h5>
-                </div>
-                <div class="card-body p-0">
-                    <% if (pendingBillsList && pendingBillsList.length > 0) { %>
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light">
-                                    <tr>
-                                        <th class="ps-4">Description</th>
-                                        <th>Date</th>
-                                        <th>Amount Due</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% pendingBillsList.forEach(bill => { %>
-                                        <tr>
-                                            <td class="ps-4 fw-bold"><%= bill.desc %></td>
-                                            <td class="text-muted"><%= new Date(bill.date).toLocaleDateString() %></td>
-                                            <td class="text-danger fw-bold">₹<%= bill.amount.toFixed(2) %></td>
-                                            <td><span class="badge bg-warning text-dark">Pending</span></td>
-                                        </tr>
-                                    <% }) %>
-                                </tbody>
-                            </table>
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="icon-box bg-success-light text-success mb-3">
+                                <i class="fas fa-wallet fa-2x"></i>
+                            </div>
+                            <h5 class="text-muted mb-2">Total Income</h5>
+                            <h3 class="fw-bold text-dark">₹<%= TotalIncome %>
+                            </h3>
                         </div>
-                    <% } else { %>
-                        <div class="text-center py-5">
-                            <p class="text-muted mb-0">No pending bills! You are all settled up.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="icon-box bg-info-light text-info mb-3">
+                                <i class="fas fa-hand-holding-usd fa-2x"></i>
+                            </div>
+                            <h5 class="text-muted mb-2">Receivables</h5>
+                            <h3 class="fw-bold text-success">₹<%= Receivables %>
+                            </h3>
                         </div>
-                    <% } %>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="icon-box bg-warning-light text-warning mb-3">
+                                <i class="fas fa-file-invoice fa-2x"></i>
+                            </div>
+                            <h5 class="text-muted mb-2">Payables</h5>
+                            <h3 class="fw-bold text-danger">₹<%= Payables %>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="icon-box bg-danger-light text-danger mb-3">
+                                <i class="fas fa-bell fa-2x"></i>
+                            </div>
+                            <h5 class="text-muted mb-2">Pending Bills</h5>
+                            <h3 class="fw-bold text-dark">
+                                <%= PendingBills %>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-5">
+                <div class="col-md-6 mb-3">
+                    <div class="card shadow-sm border-0 h-100 p-3">
+                        <h5 class="card-title fw-bold mb-4">Expense Breakdown</h5>
+                        <div class="chart-container" style="position: relative; height:300px; width:100%">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="card shadow-sm border-0 h-100 p-3">
+                        <h5 class="card-title fw-bold mb-4">Cash Flow</h5>
+                        <div class="chart-container" style="position: relative; height:300px; width:100%">
+                            <canvas id="overviewChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0 fw-bold">Bills to be Paid</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <% if (pendingBillsList && pendingBillsList.length> 0) { %>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="ps-4">Description</th>
+                                                <th>Date</th>
+                                                <th>Amount Due</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% pendingBillsList.forEach(bill=> { %>
+                                                <tr>
+                                                    <td class="ps-4 fw-bold">
+                                                        <%= bill.desc %>
+                                                    </td>
+                                                    <td class="text-muted">
+                                                        <%= new Date(bill.date).toLocaleDateString() %>
+                                                    </td>
+                                                    <td class="text-danger fw-bold">₹<%= bill.amount.toFixed(2) %>
+                                                    </td>
+                                                    <td><span class="badge bg-warning text-dark">Pending</span></td>
+                                                </tr>
+                                                <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <% } else { %>
+                                    <div class="text-center py-5">
+                                        <p class="text-muted mb-0">No pending bills! You are all settled up.</p>
+                                    </div>
+                                    <% } %>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<%- include('../partials/footer') %>
+        <%- include('../partials/footer') %>
 
-<script>
-const rawLabels = JSON.parse('<%- chartLabels %>');
-    const rawData = JSON.parse('<%- chartData %>');
+            <script>
+                // EJS puts the array directly into the variable. No quotes, no parsing.
+                const rawLabels = <%- JSON.stringify(chartLabels) %>;
+                const rawData = <%- JSON.stringify(chartData) %>;
 
-    
-    const catLabels = rawLabels.length ? rawLabels : ['No Data'];
-    const catData = rawData.length ? rawData : [1];
-    
-    const incomeVal = Number('<%= TotalIncome %>');
-    const payablesVal = Number('<%= Payables %>');
-    const receivablesVal = Number('<%= Receivables %>');
 
-    
-    const catColors = rawData.length ? 
-        ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] : 
-        ['#e9ecef'];
 
-        
-    const ctx1 = document.getElementById('categoryChart').getContext('2d');
-    new Chart(ctx1, {
-        type: 'doughnut',
-        data: {
-            labels: catLabels,
-            datasets: [{
-                data: catData,
-                backgroundColor: catColors,
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right' }
-            }
-        }
-    });
+                const catLabels = rawLabels.length ? rawLabels : ['No Data'];
+                const catData = rawData.length ? rawData : [1];
 
-    
-    const ctx2 = document.getElementById('overviewChart').getContext('2d');
-    new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: ['Income', 'Payables', 'Receivables'],
-            datasets: [{
-                label: 'Amount (₹)',
-                data: [incomeVal, payablesVal, receivablesVal],
-                backgroundColor: ['#28a745', '#dc3545', '#0dcaf0'],
-                borderRadius: 5,
-                barThickness: 50
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#f3f3f3' } },
-                x: { grid: { display: false } }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
-</script>
+                const incomeVal = Number('<%= TotalIncome %>');
+                const payablesVal = Number('<%= Payables %>');
+                const receivablesVal = Number('<%= Receivables %>');
+
+
+                const catColors = rawData.length ?
+                    ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] :
+                    ['#e9ecef'];
+
+
+                const ctx1 = document.getElementById('categoryChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: catLabels,
+                        datasets: [{
+                            data: catData,
+                            backgroundColor: catColors,
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right' }
+                        }
+                    }
+                });
+
+
+                const ctx2 = document.getElementById('overviewChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Income', 'Payables', 'Receivables'],
+                        datasets: [{
+                            label: 'Amount (₹)',
+                            data: [incomeVal, payablesVal, receivablesVal],
+                            backgroundColor: ['#28a745', '#dc3545', '#0dcaf0'],
+                            borderRadius: 5,
+                            barThickness: 50
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f3f3f3' } },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            </script>

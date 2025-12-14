@@ -4,13 +4,19 @@ const Expense = require('../../model/splitmodel');
 const PDFDocument = require('pdfkit');
 const Group = require('../../model/Group');
 const mongoose = require('mongoose');
-const { equal } = require('assert');
+
 
 
 exports.getdashboard = async (req, res, next) => {
+    // 1. Safety Check
     if (!req.user || !req.user._id) return res.redirect('/login');
+
+    // 2. Define IDs in BOTH formats (String and ObjectId)
+    // This ensures we catch the data no matter how it was saved
     const userid = new mongoose.Types.ObjectId(req.user._id);
+    const useridStr = req.user._id.toString();
     const userEmail = req.user.email;
+
     try {
         const userDetails = await User.findById(userid);
         const incomeAgg = await Income.aggregate([
@@ -18,21 +24,39 @@ exports.getdashboard = async (req, res, next) => {
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
         const totalIncome = incomeAgg.length > 0 ? incomeAgg[0].total : 0;
+
         const receivablesAgg = await Expense.aggregate([
-            { $match: { paidBy: userid } },
+            { 
+                $match: { 
+                    paidBy: { $in: [userid, useridStr] } 
+                } 
+            },
             { $unwind: "$splitters" },
             { $match: { "splitters.hasSettled": false } },
-
-            { $match: { "splitters.userId": { $ne: userid } } },
+            
+            { 
+                $match: { 
+                    "splitters.userId": { $nin: [userid, useridStr] } 
+                } 
+            },
             { $group: { _id: null, total: { $sum: "$splitters.amountOwned" } } }
         ]);
         const totalReceivables = receivablesAgg.length > 0 ? receivablesAgg[0].total : 0;
-        const payablesAgg = await Expense.aggregate([
-            { $match: { paidBy: { $ne: userid } } },
+
+            const payablesAgg = await Expense.aggregate([
+           
+            { 
+                $match: { 
+                    paidBy: { $nin: [userid, useridStr] } 
+                } 
+            },
             { $unwind: "$splitters" },
             {
                 $match: {
-                    $or: [{ "splitters.userId": userid }, { "splitters.contact": userEmail }],
+                    $or: [
+                        { "splitters.userId": { $in: [userid, useridStr] } }, 
+                        { "splitters.contact": userEmail }
+                    ],
                     "splitters.hasSettled": false
                 }
             },
@@ -42,18 +66,46 @@ exports.getdashboard = async (req, res, next) => {
         const pendingBillsCount = payablesAgg.length > 0 ? payablesAgg[0].count : 0;
 
         const categoryStats = await Expense.aggregate([
-            { $match: { $or: [{ paidBy: userid }, { "splitters.userId": userid }] } },
-            { $group: { _id: "$category", total: { $sum: "$amount" } } }
+            {
+                $match: {
+                    $or: [
+                        
+                        { paidBy: { $in: [userid, useridStr] } },
+                    
+                        { "splitters.userId": { $in: [userid, useridStr] } },
+                        { "splitters.contact": userEmail }
+                    ]
+                }
+            },
+            { $unwind: "$splitters" },
+            {
+                $match: {
+                    $or: [
+                        { "splitters.userId": { $in: [userid, useridStr] } },
+                        { "splitters.contact": userEmail }
+                    ]
+                }
+            },
+            { $group: { _id: "$category", total: { $sum: "$splitters.amountOwned" } } }
         ]);
 
         const chartLabels = categoryStats.map(stat => stat._id || 'General');
         const chartData = categoryStats.map(stat => stat.total);
+
         const pendingBillsList = await Expense.aggregate([
-            { $match: { paidBy: { $ne: userid } } },
+            
+            { 
+                $match: { 
+                    paidBy: { $nin: [userid, useridStr] } 
+                } 
+            },
             { $unwind: "$splitters" },
             {
                 $match: {
-                    $or: [{ "splitters.userId": userid }, { "splitters.contact": userEmail }],
+                    $or: [
+                        { "splitters.userId": { $in: [userid, useridStr] } },
+                        { "splitters.contact": userEmail }
+                    ],
                     "splitters.hasSettled": false
                 }
             },
@@ -66,7 +118,6 @@ exports.getdashboard = async (req, res, next) => {
             }
         ]);
 
-
         const formattedBills = pendingBillsList.map(b => ({
             desc: b.description,
             date: b.date,
@@ -77,15 +128,13 @@ exports.getdashboard = async (req, res, next) => {
             pageTitle: "Home Page",
             stylesheet: "/dashboard.css",
             user: userDetails,
-
             TotalIncome: totalIncome,
             Receivables: totalReceivables.toFixed(2),
             Payables: totalPayables.toFixed(2),
             PendingBills: pendingBillsCount,
             pendingBillsList: formattedBills,
-
-            chartLabels: JSON.stringify(chartLabels),
-            chartData: JSON.stringify(chartData)
+            chartLabels: chartLabels,
+            chartData: chartData
         });
 
     } catch (err) {
@@ -93,6 +142,15 @@ exports.getdashboard = async (req, res, next) => {
         next(err);
     }
 }
+
+
+exports.getprofile = (req, res, next) => {
+    res.render('store/profile', {
+        pageTitle: "Profile Page",
+        user: req.user
+    })
+}
+
 
 exports.getsetincome = (req, res, next) => {
     res.render('store/setincome', {
@@ -232,15 +290,15 @@ exports.postsplit = async (req, res, next) => {
                 hasSettled: true
             });
 
-       for (let i = 0; i < namesArr.length; i++) {
+            for (let i = 0; i < namesArr.length; i++) {
                 let calculatedShare = 0;
                 if (activeSplitMethod === 'equal') {
-                    const totalPeople = namesArr.length + 1; 
+                    const totalPeople = namesArr.length + 1;
                     calculatedShare = amount / totalPeople;
-                } 
+                }
                 else if (activeSplitMethod === 'amount') {
                     calculatedShare = parseFloat(valuesArr[i]) || 0;
-                } 
+                }
                 else if (activeSplitMethod === 'percentage') {
                     const percent = parseFloat(valuesArr[i]) || 0;
                     calculatedShare = (percent / 100) * amount;
@@ -252,9 +310,9 @@ exports.postsplit = async (req, res, next) => {
                     splitValue: parseFloat(valuesArr[i]) || 0,
                     hasSettled: false
                 });
-        }
+            }
 
-    }else {
+        } else {
             if (!groupId) return res.redirect('/dashboard/split?error=Group ID required');
 
             finalGroupId = groupId;
@@ -264,7 +322,7 @@ exports.postsplit = async (req, res, next) => {
             const groupDoc = await Group.findById(groupId);
             if (!groupDoc) return res.redirect('/dashboard/split?error=Group not found');
 
-           
+
             let allMembers = [];
 
             allMembers.push({
@@ -274,7 +332,7 @@ exports.postsplit = async (req, res, next) => {
             });
 
             groupDoc.members.forEach(m => {
-             
+
                 if (m.userId && m.userId.toString() === userid.toString()) return;
 
                 allMembers.push({
@@ -347,22 +405,22 @@ exports.downloadpdf = async (req, res, next) => {
         const doc = new PDFDocument({ margin: 30 });
         doc.pipe(res);
 
-        const P = 30; 
-        const W = doc.page.width - P * 2; 
+        const P = 30;
+        const W = doc.page.width - P * 2;
         const X_START = P;
-        const LINE_HEIGHT_GUESS = 18; 
+        const LINE_HEIGHT_GUESS = 18;
 
         doc.fontSize(24).font('Helvetica-Bold').text(`Expense Split: ${expense.description}`, { align: "center" });
-        doc.moveDown(); 
+        doc.moveDown();
 
         doc.fontSize(12).font('Helvetica');
-        const metaY = doc.y; 
+        const metaY = doc.y;
 
         doc.text(`Date: ${new Date(expense.date).toLocaleDateString()}`, X_START, metaY);
         doc.text(`Paid By: ${payerName}`, X_START, metaY + LINE_HEIGHT_GUESS);
 
         const rightColX = P + W * 0.5;
-        const rightColW = W * 0.5; 
+        const rightColW = W * 0.5;
 
         doc.text(`Total Amount: Rs. ${expense.amount.toFixed(2)}`, rightColX, metaY, { align: "right", width: rightColW });
         doc.text(`Split Method: ${expense.splitMethod}`, rightColX, metaY + LINE_HEIGHT_GUESS, { align: "right", width: rightColW });
@@ -395,10 +453,10 @@ exports.downloadpdf = async (req, res, next) => {
         for (let i = 0; i < expense.splitters.length; i++) {
             const s = expense.splitters[i];
 
-            const estRowHeight = 40; 
+            const estRowHeight = 40;
             if (doc.y > doc.page.height - bottomMargin - estRowHeight) {
                 doc.addPage();
-                drawHeader(doc, cols, P, W); 
+                drawHeader(doc, cols, P, W);
             }
 
             const sv = !isNaN(parseFloat(s.splitValue))
@@ -534,18 +592,18 @@ exports.postgroup = async (req, res, next) => {
         initialMembers.push({
             name: req.user.name || req.user.displayName || "Admin",
             contact: req.user.email,
-            userId: userid 
+            userId: userid
         });
 
-        
+
         if (members && Array.isArray(members)) {
-            
+
             for (const member of members) {
                 if (member.contact) {
                     let foundId = null;
 
                     const existingUser = await User.findOne({ email: member.contact });
-                    
+
                     if (existingUser) {
                         foundId = existingUser._id;
                     }
@@ -553,7 +611,7 @@ exports.postgroup = async (req, res, next) => {
                     initialMembers.push({
                         name: member.name,
                         contact: member.contact,
-                        userId: foundId 
+                        userId: foundId
                     });
                 }
             }
@@ -569,7 +627,7 @@ exports.postgroup = async (req, res, next) => {
 
         await group.save();
         console.log("Group Created Successfully");
-        
+
         // Redirect to history so you can see the new group immediately
         res.redirect('/dashboard/group-history');
 
@@ -640,7 +698,7 @@ exports.getGroupDetails = async (req, res, next) => {
 
 exports.postDeleteExpense = async (req, res, next) => {
     const userid = req.user && (req.user._id || req.user.uid);
-    const expenseId = req.body.expenseId; 
+    const expenseId = req.body.expenseId;
 
     if (!userid) return res.redirect('/login');
 
@@ -664,6 +722,35 @@ exports.postDeleteExpense = async (req, res, next) => {
 
     } catch (err) {
         console.log("Error deleting expense:", err);
+        next(err);
+    }
+};
+
+exports.postDeleteGroup = async (req, res, next) => {
+    const userid = req.user && (req.user._id || req.user.uid);
+    const groupId = req.body.groupId;
+
+    if (!userid) return res.redirect('/login');
+
+    try {
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+            return res.redirect('/dashboard/group-history');
+        }
+
+        if (group.createdBy.toString() !== userid.toString()) {
+            console.log("Unauthorized group delete attempt.");
+            return res.redirect('/dashboard/group-history?error=OnlyAdminCanDelete');
+        }
+
+        await Group.findByIdAndDelete(groupId);
+        console.log("Group deleted successfully.");
+
+        res.redirect('/dashboard/group-history');
+
+    } catch (err) {
+        console.log("Error deleting group:", err);
         next(err);
     }
 };
