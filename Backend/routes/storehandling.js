@@ -6,6 +6,7 @@ storerouter.get('/', storeController.getdashboard);
 storerouter.get('/profile',storeController.getprofile);
 storerouter.get('/setincome', storeController.getsetincome);
 storerouter.post('/setincome', storeController.postsetincome);
+storerouter.get('/incomehistory',storeController.getIncomeHistory);
 storerouter.get('/splits', storeController.getsplit);
 storerouter.post('/splits', storeController.postsplit);
 storerouter.get('/mysplithistory', storeController.getsplithistory);

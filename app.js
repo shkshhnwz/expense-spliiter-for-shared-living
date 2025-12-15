@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 // Local modules
 const authRouter = require("./Backend/routes/authhandling");
 const storerouter = require("./Backend/routes/storehandling");
-const isAuth = require('./Backend/middlewares/isAuth'); // Import middleware but don't use it globally yet
+const isAuth = require('./Backend/middlewares/isAuth'); 
 
 // Firebase Setup
 const serviceAccount = require('./serviceAccountKey.json');
@@ -26,29 +26,22 @@ app.set('views', path.join(__dirname, 'Frontend/views'));
 // Middleware (Global)
 app.use(cookieParser());
 app.use(session({
-    secret: 'shah', // In production, move this to .env
+    secret:process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: { secure: false } 
 }));
 
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'Backend/public')));
 
-// --- ROUTES ---
-
-// 1. Auth Routes (Login, Register, Forgot Password)
-// These must be accessible WITHOUT logging in, so they go BEFORE isAuth
 app.use(authRouter); 
 
-// 2. Protected Routes (Dashboard)
-// We apply 'isAuth' only to the dashboard routes
 app.use('/dashboard', isAuth, storerouter);
 
-// 3. Root Redirect
 app.get('/', (req, res) => {
-    // Check session or cookie here to decide redirect
     if (req.session && req.session.user) { 
         return res.redirect('/dashboard');
     }

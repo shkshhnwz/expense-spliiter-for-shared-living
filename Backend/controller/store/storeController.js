@@ -26,35 +26,35 @@ exports.getdashboard = async (req, res, next) => {
         const totalIncome = incomeAgg.length > 0 ? incomeAgg[0].total : 0;
 
         const receivablesAgg = await Expense.aggregate([
-            { 
-                $match: { 
-                    paidBy: { $in: [userid, useridStr] } 
-                } 
+            {
+                $match: {
+                    paidBy: { $in: [userid, useridStr] }
+                }
             },
             { $unwind: "$splitters" },
             { $match: { "splitters.hasSettled": false } },
-            
-            { 
-                $match: { 
-                    "splitters.userId": { $nin: [userid, useridStr] } 
-                } 
+
+            {
+                $match: {
+                    "splitters.userId": { $nin: [userid, useridStr] }
+                }
             },
             { $group: { _id: null, total: { $sum: "$splitters.amountOwned" } } }
         ]);
         const totalReceivables = receivablesAgg.length > 0 ? receivablesAgg[0].total : 0;
 
-            const payablesAgg = await Expense.aggregate([
-           
-            { 
-                $match: { 
-                    paidBy: { $nin: [userid, useridStr] } 
-                } 
+        const payablesAgg = await Expense.aggregate([
+
+            {
+                $match: {
+                    paidBy: { $nin: [userid, useridStr] }
+                }
             },
             { $unwind: "$splitters" },
             {
                 $match: {
                     $or: [
-                        { "splitters.userId": { $in: [userid, useridStr] } }, 
+                        { "splitters.userId": { $in: [userid, useridStr] } },
                         { "splitters.contact": userEmail }
                     ],
                     "splitters.hasSettled": false
@@ -69,9 +69,9 @@ exports.getdashboard = async (req, res, next) => {
             {
                 $match: {
                     $or: [
-                        
+
                         { paidBy: { $in: [userid, useridStr] } },
-                    
+
                         { "splitters.userId": { $in: [userid, useridStr] } },
                         { "splitters.contact": userEmail }
                     ]
@@ -93,11 +93,11 @@ exports.getdashboard = async (req, res, next) => {
         const chartData = categoryStats.map(stat => stat.total);
 
         const pendingBillsList = await Expense.aggregate([
-            
-            { 
-                $match: { 
-                    paidBy: { $nin: [userid, useridStr] } 
-                } 
+
+            {
+                $match: {
+                    paidBy: { $nin: [userid, useridStr] }
+                }
             },
             { $unwind: "$splitters" },
             {
@@ -162,34 +162,22 @@ exports.getsetincome = (req, res, next) => {
 
 exports.postsetincome = async (req, res, next) => {
     const userid = req.user && req.user._id;
-    if (!userid) {
-        res.redirect('/login')
-    }
+    if (!userid) return res.redirect('/login');
 
-    const {
-        amount,
-        dateReceived,
-        incomeSource,
-        description
-    } = req.body;
+    const { amount, dateReceived, incomeSource, description } = req.body;
 
     if (!amount || !dateReceived || !incomeSource) {
-        return res.status(400).json({
-            message: 'Missing required fields.'
-        })
+        return res.redirect('/dashboard/setincome?error=All fields are required');
     }
+
     const amountNum = Number(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
-        return res.status(400).json({
-            message: 'Invalid amount.'
-        })
+        return res.redirect('/dashboard/setincome?error=Amount must be positive');
     }
 
     const validSource = ['Salary', 'Freelance', 'BusinessProfit', 'Rental', 'Investment', 'Other'];
     if (!validSource.includes(incomeSource)) {
-        return res.status(400).json({
-            message: `Invalid Income Source. Must be one the ${validSource.join(', ')}`
-        })
+        return res.redirect('/dashboard/setincome?error=Invalid Income Source');
     }
 
     try {
@@ -199,27 +187,41 @@ exports.postsetincome = async (req, res, next) => {
             dateReceived: dateReceived,
             incomeSource: incomeSource,
             description: description
-        })
+        });
 
-        const result = await newIncome.save();
-        res.status(201).json({
-            message: 'Income record successfully added! ',
-            incomerecord: result
-        })
+        await newIncome.save();
+
+        return res.redirect('/dashboard?success=Income added successfully');
+
     } catch (err) {
-        console.error('Error saving new income entry:', err);
-        if (err.name === 'ValidationError') {
-            return res.status(422).json({
-                message: 'Data validation failed.',
-                errors: err.errors
-            });
-        }
-        next(err);
+        console.error('Error saving income:', err);
+        return res.redirect('/dashboard/setincome?error=Something went wrong');
     }
 }
 
+exports.getIncomeHistory = async (req, res, next) => {
+    const userid = req.user && req.user._id;
 
+    if (!userid) {
+        return res.redirect('/login');
+    }
 
+    try {
+        const incomes = await Income.find({ user: userid })
+            .sort({ dateReceived: -1 });
+
+        res.render('store/incomehistory', {
+            pageTitle: 'Income History',
+            path: '/dashboard/incomehistory',
+            incomeList: incomes,
+            user: req.user 
+        });
+
+    } catch (err) {
+        console.error('Error fetching income history:', err);
+        res.redirect('/dashboard?error=Could not load history');
+    }
+};
 
 exports.getsplit = async (req, res, next) => {
     try {
