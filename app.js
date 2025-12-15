@@ -12,15 +12,11 @@ const authRouter = require("./Backend/routes/authhandling");
 const storerouter = require("./Backend/routes/storehandling");
 const isAuth = require('./Backend/middlewares/isAuth'); 
 
-// Firebase Setup
-const admin = require('firebase-admin');
-
 let serviceAccount;
-// Check if we are running on the server (Render)
+
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 } else {
-  // We are running locally, so look for the file
   serviceAccount = require('./serviceAccountKey.json');
 }
 
