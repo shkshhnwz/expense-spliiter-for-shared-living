@@ -320,7 +320,6 @@ exports.postsplit = async (req, res, next) => {
             finalGroupId = groupId;
             activeSplitMethod = 'equal';
 
-            // 1. Fetch Group
             const groupDoc = await Group.findById(groupId);
             if (!groupDoc) return res.redirect('/dashboard/split?error=Group not found');
 

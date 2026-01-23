@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getAnalytics } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -72,7 +72,7 @@ loginForm.addEventListener('submit', (e) => {
 const googleBtn = document.getElementById('google-signin-btn');
 if(googleBtn){ 
 googleBtn.addEventListener('click', () => {
-    signInWithPopup(auth, provider)
+    signInWithRedirect(auth, provider)
         .then((result) => {
             console.log("Successfully signed in with Google:", result.user.displayName);
             return result.user.getIdToken();
