@@ -47,7 +47,6 @@ exports.postregister = async (req, res, next) => {
 
 
 
-
 exports.postSessionLogin = async (req, res) => {
     try {
         const idToken = req.body.idToken.toString();
@@ -57,20 +56,29 @@ exports.postSessionLogin = async (req, res) => {
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         const { uid, email, name, picture } = decodedToken;
 
-        // 2. Check if user exists in MongoDB
+        // 2. Check if user exists in MongoDB by Firebase UID
         let user = await User.findOne({ firebaseUid: uid });
 
-        // 3. IF USER DOES NOT EXIST -> CREATE THEM (Auto-Register)
+        // 3. IF NOT FOUND BY UID, check by EMAIL (Account Linking)
         if (!user) {
-            console.log("New Google User detected. creating in MongoDB...");
-            user = new User({
-                firebaseUid: uid,
-                name: name || "Google User", // Fallback if name is missing
-                email: email,
-                phone: "N/A" // Google doesn't always provide phone, handle accordingly
-            });
-            await user.save();
+            user = await User.findOne({ email: email });
+            
+            if (user) {
+                console.log("Existing user found by email. Linking Google account...");
+                user.firebaseUid = uid;
+                await user.save();
+            } else {
+                console.log("New Google User detected. creating in MongoDB...");
+                user = new User({
+                    firebaseUid: uid,
+                    name: name || "Google User", // Fallback if name is missing
+                    email: email,
+                    phone: "N/A" // Google doesn't always provide phone, handle accordingly
+                });
+                await user.save();
+            }
         }
+
 
         // 4. Create Session Cookie
         const sessionCookie = await admin
